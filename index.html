@@ -34,6 +34,10 @@
   .worn-list li { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); }
   .worn-list button, .link { border:none; background:none; color:var(--muted); font-size:12px; text-decoration:underline; }
   .empty { color:var(--muted); font-size:13px; }
+  .measure { display:grid; grid-template-columns:52px 1fr 64px 22px; align-items:center; gap:8px; font-size:13px; margin-bottom:8px; }
+  .measure input[type=range] { width:100%; accent-color:var(--accent); }
+  .measure input[type=number] { width:100%; padding:4px 6px; border:1px solid var(--line); border-radius:6px; font:inherit; }
+  .hint { color:var(--muted); font-size:12px; margin:0 0 8px; }
 </style>
 </head>
 <body>
@@ -53,9 +57,23 @@
 
   <!-- DEŠINĖ: avataras ir dabartinis derinys -->
   <section class="panel">
-    <h2>Kūno forma</h2>
+    <h2>Tavo matmenys</h2>
+    <div class="measure">
+      <span>Ūgis</span>
+      <input type="range" id="heightRange" min="140" max="210" step="1">
+      <input type="number" id="heightNum" min="140" max="210">
+      <span>cm</span>
+    </div>
+    <div class="measure">
+      <span>Svoris</span>
+      <input type="range" id="weightRange" min="40" max="150" step="1">
+      <input type="number" id="weightNum" min="40" max="150">
+      <span>kg</span>
+    </div>
+    <p class="hint">Greitas pasirinkimas:</p>
     <div class="chips" id="shapes"></div>
-    <div class="stage"><svg id="avatar" viewBox="20 10 160 380"></svg></div>
+    <p class="hint" id="bodyInfo"></p>
+    <div class="stage"><svg id="avatar" viewBox="0 -62 200 450"></svg></div>
     <div class="row">
       <h2 style="margin:10px 0 0">Dabartinis derinys</h2>
       <button class="link" id="clearAll">Nurengti viską</button>
@@ -104,6 +122,31 @@ const BODY_SHAPES = {
   wide:   { name:"Platesnė",  s:43, w:40, h:43, a:18 }
 };
 
+// Atskaitos taškai: koks kūnas atitinka kokį svorio ir ūgio santykį (KMI).
+// Tarp jų kūno matmenys apskaičiuojami tolygiai – todėl figūra keičiasi sklandžiai.
+const BODY_ANCHORS = [
+  [17,   BODY_SHAPES.slim],
+  [22.5, BODY_SHAPES.medium],
+  [30,   BODY_SHAPES.wide],
+  [38,   { s:49, w:52, h:52, a:21 }]
+];
+// Greiti pasirinkimai: kokį KMI nustato kiekvienas mygtukas
+const PRESET_BMI = { slim:18.5, medium:22.5, wide:29 };
+const REF_HEIGHT = 175;   // tokio ūgio (cm) avataras nupieštas be mastelio
+
+// Iš ūgio ir svorio apskaičiuoja kūno matmenis piešimui
+function bodyFromMeasures(heightCm, weightKg) {
+  const bmi = weightKg / ((heightCm / 100) ** 2);
+  let i = 0;
+  while (i < BODY_ANCHORS.length - 2 && bmi > BODY_ANCHORS[i + 1][0]) i++;
+  const [b0, p0] = BODY_ANCHORS[i], [b1, p1] = BODY_ANCHORS[i + 1];
+  const t = Math.min(1, Math.max(0, (bmi - b0) / (b1 - b0)));
+  const body = { bmi };
+  for (const k of ["s", "w", "h", "a"]) body[k] = p0[k] + (p1[k] - p0[k]) * t;
+  return body;
+}
+function figureName(bmi) { return bmi < 20 ? "siaura" : bmi < 26 ? "vidutinė" : "platesnė"; }
+
 // Kokia tvarka drabužiai piešiami (vėlesni – viršuje)
 const LAYER_ORDER = ["bottom", "shoes", "top", "outer", "hat"];
 
@@ -111,7 +154,8 @@ const LAYER_ORDER = ["bottom", "shoes", "top", "outer", "hat"];
 // 2. BŪSENA – kas šiuo metu pasirinkta
 // =====================================================================
 const state = {
-  shape: "medium",  // pasirinkta kūno forma
+  height: 170,      // ūgis, cm
+  weight: 65,       // svoris, kg
   worn: {},         // pvz. { top: 3, bottom: 5 } – kategorija → drabužio id
   filter: "all"     // kuri katalogo kategorija rodoma
 };
@@ -133,7 +177,9 @@ const pts = arr => arr.map(p => p.join(",")).join(" ");
 
 // Rankos: nuo peties iki plaštakos
 function arm(b, sign) {
-  return { x1: CX + sign * (b.s - b.a / 2), y1: 102, x2: CX + sign * (b.s + 10), y2: 236 };
+  // plaštaka visada šiek tiek už klubų, kad ranka nelįstų į kūną
+  const handX = Math.max(b.s + 10, b.h + b.a * 0.7);
+  return { x1: CX + sign * (b.s - b.a / 2), y1: 102, x2: CX + sign * handX, y2: 236 };
 }
 // Taškas rankoje: t = 0 (petys) ... 1 (plaštaka)
 function armPoint(b, sign, t) {
@@ -275,16 +321,29 @@ function renderCatalog() {
 
 function renderShapes() {
   $("shapes").innerHTML = Object.entries(BODY_SHAPES).map(([key, s]) =>
-    `<button class="chip ${state.shape === key ? "active" : ""}" data-shape="${key}">${s.name}</button>`).join("");
+    `<button class="chip" data-shape="${key}">${s.name}</button>`).join("");
+}
+
+// Ūgio ir svorio laukeliai rodo tą patį skaičių kaip ir būsena
+function renderMeasures() {
+  $("heightRange").value = $("heightNum").value = state.height;
+  $("weightRange").value = $("weightNum").value = state.weight;
 }
 
 function renderAvatar() {
-  const b = BODY_SHAPES[state.shape];
+  const b = bodyFromMeasures(state.height, state.weight);
+  const k = state.height / REF_HEIGHT;          // aukštesnis žmogus = didesnis avataras
   let svg = drawBody(b);
   for (const cat of LAYER_ORDER) {
     if (state.worn[cat]) svg += drawItem(byId(state.worn[cat]), b);
   }
-  $("avatar").innerHTML = svg;
+  // Viską padidinam/sumažinam nuo pėdų (y = 370), kad avataras „stovėtų“ vietoje
+  const headTop = 370 - (370 - 27) * k;
+  $("avatar").innerHTML = `
+    <line x1="4" y1="${headTop}" x2="60" y2="${headTop}" stroke="#bbb" stroke-dasharray="3 3"/>
+    <text x="4" y="${headTop - 4}" font-size="10" fill="#999">${state.height} cm</text>
+    <g transform="translate(100 370) scale(${k}) translate(-100 -370)">${svg}</g>`;
+  $("bodyInfo").textContent = `Figūra: ${figureName(b.bmi)}`;
 }
 
 function renderWornList() {
@@ -296,8 +355,26 @@ function renderWornList() {
 }
 
 function render() {
-  renderFilters(); renderCatalog(); renderShapes(); renderAvatar(); renderWornList();
+  renderFilters(); renderCatalog(); renderShapes(); renderMeasures(); renderAvatar(); renderWornList();
 }
+
+// Ūgio/svorio keitimas: slankiklis ir skaičiaus laukelis veikia kartu
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+function onMeasure(field, min, max, el) {
+  const v = Number(el.value);
+  if (!v) return;                       // laukelis tuščias – laukiam, kol įves
+  state[field] = clamp(Math.round(v), min, max);
+  // Atnaujinam kitą laukelį, bet ne tą, į kurį žmogus dabar rašo
+  const other = el.type === "range" ? field + "Num" : field + "Range";
+  $(other).value = state[field];
+  renderAvatar();
+}
+$("heightRange").addEventListener("input", e => onMeasure("height", 140, 210, e.target));
+$("heightNum").addEventListener("input",   e => onMeasure("height", 140, 210, e.target));
+$("weightRange").addEventListener("input", e => onMeasure("weight", 40, 150, e.target));
+$("weightNum").addEventListener("input",   e => onMeasure("weight", 40, 150, e.target));
+// Išėjus iš laukelio – parodom pataisytą skaičių (pvz. 300 → 210)
+["heightNum", "weightNum"].forEach(id => $(id).addEventListener("change", renderMeasures));
 
 // =====================================================================
 // 5. PASPAUDIMAI – kas vyksta, kai vartotojas ką nors spaudžia
@@ -307,7 +384,8 @@ document.addEventListener("click", e => {
   if (!el) return;
   const d = el.dataset;
   if (d.filter) state.filter = d.filter;
-  if (d.shape)  state.shape = d.shape;
+  // Greitas pasirinkimas: pagal dabartinį ūgį nustatom tipišką svorį
+  if (d.shape) state.weight = clamp(Math.round(PRESET_BMI[d.shape] * (state.height / 100) ** 2), 40, 150);
   if (d.item) {
     const item = byId(Number(d.item));
     // Paspaudus jau apvilktą drabužį – nuimam, kitaip – uždedam (pakeičiam seną)

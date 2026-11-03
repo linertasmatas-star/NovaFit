@@ -7,7 +7,7 @@ Atsisiųskite `index.html` ir du kartus spustelėkite jį – programėlė atsid
 
 ## Kas jau veikia (demo v1)
 - Drabužių katalogas (15 pavyzdinių drabužių) su filtru pagal kategoriją
-- 2D avataras su 3 kūno formomis
+- 2D avataras, kuris keičiasi pagal įvestą ūgį ir svorį (+ 3 greiti pasirinkimai)
 - Drabužių uždėjimas ant avataro vienu paspaudimu, nuėmimas, „Nurengti viską“
 
 ## Kas bus toliau
