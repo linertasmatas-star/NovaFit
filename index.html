@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NovaFit – demo v1</title>
+<style>
+  /* ===== BENDRAS STILIUS (spalvos, šriftai, išdėstymas) ===== */
+  :root { --bg:#f6f4f1; --card:#fff; --ink:#222; --muted:#777; --accent:#6c4cf5; --line:#e4e0da; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); background:#fff; display:flex; align-items:baseline; gap:10px; }
+  header h1 { margin:0; font-size:20px; }
+  header span { color:var(--muted); font-size:13px; }
+  main { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(280px,1fr); gap:16px; padding:16px; max-width:1100px; margin:0 auto; }
+  @media (max-width:760px) { main { grid-template-columns:1fr; } }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  h2 { font-size:15px; margin:0 0 10px; }
+  button { font:inherit; cursor:pointer; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .chip { border:1px solid var(--line); background:#fff; border-radius:999px; padding:5px 11px; font-size:13px; }
+  .chip.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; }
+  .item { border:2px solid var(--line); background:#fff; border-radius:10px; padding:6px; text-align:left; }
+  .item:hover { border-color:#bbb; }
+  .item.worn { border-color:var(--accent); background:#f3f0ff; }
+  .item svg { width:100%; height:80px; display:block; background:#faf9f7; border-radius:6px; }
+  .item b { display:block; font-size:13px; margin-top:5px; }
+  .item small { color:var(--muted); font-size:11px; }
+  .stage { display:flex; justify-content:center; }
+  #avatar { width:100%; max-width:240px; height:auto; }
+  .row { display:flex; justify-content:space-between; align-items:center; }
+  .worn-list { list-style:none; padding:0; margin:10px 0 0; font-size:13px; }
+  .worn-list li { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); }
+  .worn-list button, .link { border:none; background:none; color:var(--muted); font-size:12px; text-decoration:underline; }
+  .empty { color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>NovaFit</h1>
+  <span>demo v1 – derinių kūrimas</span>
+</header>
+
+<main>
+  <!-- KAIRĖ: drabužių katalogas -->
+  <section class="panel">
+    <h2>Katalogas</h2>
+    <div class="chips" id="filters"></div>
+    <div class="grid" id="catalog"></div>
+  </section>
+
+  <!-- DEŠINĖ: avataras ir dabartinis derinys -->
+  <section class="panel">
+    <h2>Kūno forma</h2>
+    <div class="chips" id="shapes"></div>
+    <div class="stage"><svg id="avatar" viewBox="20 10 160 380"></svg></div>
+    <div class="row">
+      <h2 style="margin:10px 0 0">Dabartinis derinys</h2>
+      <button class="link" id="clearAll">Nurengti viską</button>
+    </div>
+    <ul class="worn-list" id="wornList"></ul>
+  </section>
+</main>
+
+<script>
+// =====================================================================
+// 1. DUOMENYS – čia lengva pridėti ar pakeisti drabužius
+// =====================================================================
+
+// Kategorijos = vietos ant avataro. Kiekvienoje vietoje – vienas drabužis.
+const CATEGORIES = {
+  top:    "Viršus",
+  bottom: "Apačia",
+  shoes:  "Avalynė",
+  outer:  "Striukės",
+  hat:    "Aksesuarai"
+};
+
+// Drabužių katalogas. "type" nusako, kokia forma drabužis piešiamas.
+const CATALOG = [
+  { id:1,  name:"Balti marškinėliai",   category:"top",    type:"tshirt",   color:"#f4f4f4", style:"Kasdienis" },
+  { id:2,  name:"Juodi marškinėliai",   category:"top",    type:"tshirt",   color:"#2b2b2b", style:"Kasdienis" },
+  { id:3,  name:"Smėlinis megztinis",   category:"top",    type:"sweater",  color:"#d8c3a0", style:"Kasdienis" },
+  { id:15, name:"Žalias džemperis",     category:"top",    type:"sweater",  color:"#6f8f5e", style:"Sportinis" },
+  { id:4,  name:"Žydri marškiniai",     category:"top",    type:"shirt",    color:"#a9c8ea", style:"Elegantiškas" },
+  { id:5,  name:"Klasikiniai džinsai",  category:"bottom", type:"pants",    color:"#3d5a80", style:"Kasdienis" },
+  { id:6,  name:"Juodos kelnės",        category:"bottom", type:"pants",    color:"#262626", style:"Elegantiškas" },
+  { id:7,  name:"Pilki šortai",         category:"bottom", type:"shorts",   color:"#9a9a9a", style:"Sportinis" },
+  { id:8,  name:"Bordo sijonas",        category:"bottom", type:"skirt",    color:"#7a2335", style:"Elegantiškas" },
+  { id:9,  name:"Balti sportbačiai",    category:"shoes",  type:"sneakers", color:"#ffffff", style:"Sportinis" },
+  { id:10, name:"Rudi batai",           category:"shoes",  type:"boots",    color:"#6b4226", style:"Kasdienis" },
+  { id:11, name:"Džinsinė striukė",     category:"outer",  type:"jacket",   color:"#5b7fa8", style:"Kasdienis" },
+  { id:12, name:"Smėlinis paltas",      category:"outer",  type:"coat",     color:"#c19a6b", style:"Elegantiškas" },
+  { id:13, name:"Juoda kepuraitė",      category:"hat",    type:"cap",      color:"#222222", style:"Sportinis" },
+  { id:14, name:"Žalia kepurė",         category:"hat",    type:"beanie",   color:"#4f7a5a", style:"Kasdienis" }
+];
+
+// Kūno formos: s = pečiai, w = liemuo, h = klubai, a = rankų storis (pusė pločio)
+const BODY_SHAPES = {
+  slim:   { name:"Siaura",    s:32, w:24, h:27, a:13 },
+  medium: { name:"Vidutinė",  s:37, w:30, h:33, a:15 },
+  wide:   { name:"Platesnė",  s:43, w:40, h:43, a:18 }
+};
+
+// Kokia tvarka drabužiai piešiami (vėlesni – viršuje)
+const LAYER_ORDER = ["bottom", "shoes", "top", "outer", "hat"];
+
+// =====================================================================
+// 2. BŪSENA – kas šiuo metu pasirinkta
+// =====================================================================
+const state = {
+  shape: "medium",  // pasirinkta kūno forma
+  worn: {},         // pvz. { top: 3, bottom: 5 } – kategorija → drabužio id
+  filter: "all"     // kuri katalogo kategorija rodoma
+};
+
+// =====================================================================
+// 3. PIEŠIMAS – avataras ir drabužiai iš paprastų SVG formų
+// =====================================================================
+const CX = 100;            // avataro vidurio linija
+const SKIN = "#e6cdb4";    // manekeno spalva
+
+// Pagalbinė: pašviesina (+) arba patamsina (–) spalvą – kontūrams
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = [n >> 16, (n >> 8) & 255, n & 255].map(v =>
+    Math.round(amt < 0 ? v * (1 + amt) : v + (255 - v) * amt));
+  return `rgb(${ch.join(",")})`;
+}
+const pts = arr => arr.map(p => p.join(",")).join(" ");
+
+// Rankos: nuo peties iki plaštakos
+function arm(b, sign) {
+  return { x1: CX + sign * (b.s - b.a / 2), y1: 102, x2: CX + sign * (b.s + 10), y2: 236 };
+}
+// Taškas rankoje: t = 0 (petys) ... 1 (plaštaka)
+function armPoint(b, sign, t) {
+  const r = arm(b, sign);
+  return [r.x1 + (r.x2 - r.x1) * t, r.y1 + (r.y2 - r.y1) * t];
+}
+// Rankovė arba ranka – stora linija su kontūru
+function limb(b, sign, t, extra, color) {
+  const r = arm(b, sign), [x2, y2] = armPoint(b, sign, t), wdt = b.a + extra;
+  return `<line x1="${r.x1}" y1="${r.y1}" x2="${x2}" y2="${y2}" stroke="${shade(color, -0.25)}" stroke-width="${wdt + 3}" stroke-linecap="round"/>
+          <line x1="${r.x1}" y1="${r.y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${wdt}" stroke-linecap="round"/>`;
+}
+// Liemens forma: pečiai → liemuo → klubai → (žemyn iki yBottom)
+function torso(b, pad, yBottom, flare = 0.15) {
+  const extra = Math.max(0, yBottom - 200) * flare;
+  const L = [[CX - b.s - pad, 88], [CX - b.w - pad, 170], [CX - b.h - pad - extra, yBottom]];
+  const R = L.map(([x, y]) => [2 * CX - x, y]).reverse();
+  return pts([...L, ...R]);
+}
+// Koja (arba kelnių klešnė) nuo y1 iki y2; sign = -1 kairė, +1 dešinė
+function leg(b, sign, y1, y2, pad = 0) {
+  const ankle = 12 + b.h * 0.12;
+  const at = y => {
+    const t = (y - 200) / 160;
+    const outer = (b.h + pad) + ((5 + ankle + pad) - (b.h + pad)) * t;
+    const inner = Math.max(0, 5 * t - pad * 0.5);
+    return [[CX + sign * inner, y], [CX + sign * outer, y]];
+  };
+  const [i1, o1] = at(y1), [i2, o2] = at(y2);
+  return pts([i1, o1, o2, i2]);
+}
+function footX(b, sign) { return CX + sign * (5 + (12 + b.h * 0.12) / 2); }
+
+// Plikas avataras (manekenas)
+function drawBody(b) {
+  const out = shade(SKIN, -0.18);
+  return `
+    <ellipse cx="100" cy="378" rx="${b.h + 22}" ry="7" fill="rgba(0,0,0,.08)"/>
+    ${limb(b, -1, 1, 0, SKIN)} ${limb(b, 1, 1, 0, SKIN)}
+    <polygon points="${leg(b, -1, 200, 360)}" fill="${SKIN}" stroke="${out}" stroke-width="1.5" stroke-linejoin="round"/>
+    <polygon points="${leg(b, 1, 200, 360)}" fill="${SKIN}" stroke="${out}" stroke-width="1.5" stroke-linejoin="round"/>
+    <ellipse cx="${footX(b, -1) - 3}" cy="364" rx="${9 + b.h * 0.08}" ry="6" fill="${SKIN}" stroke="${out}"/>
+    <ellipse cx="${footX(b, 1) + 3}" cy="364" rx="${9 + b.h * 0.08}" ry="6" fill="${SKIN}" stroke="${out}"/>
+    <polygon points="${torso(b, 0, 202)}" fill="${SKIN}" stroke="${out}" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="92" y="68" width="16" height="24" rx="4" fill="${SKIN}" stroke="${out}"/>
+    <circle cx="100" cy="50" r="23" fill="${SKIN}" stroke="${out}" stroke-width="1.5"/>`;
+}
+
+// Vienas drabužis pagal jo tipą
+function drawItem(item, b) {
+  const c = item.color, k = shade(c, -0.28);
+  const fill = `fill="${c}" stroke="${k}" stroke-width="1.5" stroke-linejoin="round"`;
+  switch (item.type) {
+    case "tshirt":
+      return limb(b, -1, 0.33, 6, c) + limb(b, 1, 0.33, 6, c) +
+        `<polygon points="${torso(b, 2, 208)}" ${fill}/>
+         <path d="M90,88 Q100,98 110,88" fill="none" stroke="${k}" stroke-width="1.5"/>`;
+    case "sweater":
+      return limb(b, -1, 0.93, 6, c) + limb(b, 1, 0.93, 6, c) +
+        `<polygon points="${torso(b, 3, 212)}" ${fill}/>
+         <line x1="${CX - b.h - 4}" y1="205" x2="${CX + b.h + 4}" y2="205" stroke="${k}" stroke-width="1.5"/>
+         <path d="M89,88 Q100,100 111,88" fill="none" stroke="${k}" stroke-width="3"/>`;
+    case "shirt": {
+      let buttons = "";
+      for (let y = 105; y <= 195; y += 18) buttons += `<circle cx="100" cy="${y}" r="1.8" fill="${k}"/>`;
+      return limb(b, -1, 0.92, 5, c) + limb(b, 1, 0.92, 5, c) +
+        `<polygon points="${torso(b, 2, 208)}" ${fill}/>
+         <line x1="100" y1="92" x2="100" y2="208" stroke="${k}" stroke-width="1"/>
+         <polygon points="88,84 100,98 94,104" ${fill}/><polygon points="112,84 100,98 106,104" ${fill}/>${buttons}`;
+    }
+    case "pants": case "shorts": {
+      const end = item.type === "pants" ? 356 : 262;
+      return `<polygon points="${leg(b, -1, 196, end, 3)}" ${fill}/>
+              <polygon points="${leg(b, 1, 196, end, 3)}" ${fill}/>
+              <polygon points="${pts([[CX - b.w - 2, 168], [CX + b.w + 2, 168], [CX + b.h + 3, 200], [CX - b.h - 3, 200]])}" ${fill}/>
+              <line x1="${CX - b.w - 2}" y1="175" x2="${CX + b.w + 2}" y2="175" stroke="${k}" stroke-width="1.2"/>`;
+    }
+    case "skirt":
+      return `<polygon points="${pts([[CX - b.w - 2, 168], [CX + b.w + 2, 168], [CX + b.h + 16, 270], [CX - b.h - 16, 270]])}" ${fill}/>
+              <line x1="${CX - b.w - 2}" y1="175" x2="${CX + b.w + 2}" y2="175" stroke="${k}" stroke-width="1.2"/>`;
+    case "sneakers": case "boots": {
+      let s = "";
+      for (const sign of [-1, 1]) {
+        if (item.type === "boots") s += `<polygon points="${leg(b, sign, 318, 362, 2)}" ${fill}/>`;
+        s += `<ellipse cx="${footX(b, sign) + sign * 3}" cy="364" rx="${11 + b.h * 0.08}" ry="8" ${fill}/>
+              <line x1="${footX(b, sign) + sign * 3 - 11 - b.h * 0.08}" y1="368" x2="${footX(b, sign) + sign * 3 + 11 + b.h * 0.08}" y2="368" stroke="${item.type === "sneakers" ? "#bbb" : k}" stroke-width="3"/>`;
+      }
+      return s;
+    }
+    case "jacket": case "coat": {
+      const end = item.type === "jacket" ? 214 : 292;
+      const half = sign => {
+        const outer = [[CX + sign * (b.s + 5), 86], [CX + sign * (b.w + 5), 170], [CX + sign * (b.h + 6 + Math.max(0, end - 200) * 0.18), end]];
+        return pts([[CX + sign * 3, 92], ...outer, [CX + sign * 3, end]]);
+      };
+      return limb(b, -1, 0.95, 9, c) + limb(b, 1, 0.95, 9, c) +
+        `<polygon points="${half(-1)}" ${fill}/><polygon points="${half(1)}" ${fill}/>
+         <polygon points="86,86 100,96 92,130" fill="${shade(c, -0.12)}" stroke="${k}" stroke-width="1.2"/>
+         <polygon points="114,86 100,96 108,130" fill="${shade(c, -0.12)}" stroke="${k}" stroke-width="1.2"/>`;
+    }
+    case "cap":
+      return `<path d="M76,46 A24,24 0 0 1 124,46 Z" ${fill}/>
+              <path d="M110,44 Q132,42 140,48 L112,49 Z" ${fill}/>`;
+    case "beanie":
+      return `<path d="M76,46 A24,27 0 0 1 124,46 Z" ${fill}/>
+              <rect x="74" y="40" width="52" height="10" rx="4" fill="${shade(c, -0.1)}" stroke="${k}" stroke-width="1.5"/>
+              <circle cx="100" cy="20" r="6" ${fill}/>`;
+  }
+  return "";
+}
+
+// Mažos peržiūros kataloge: kurią avataro dalį rodyti
+const THUMB_VIEW = {
+  top: "35 78 130 168", bottom: "45 160 110 205", shoes: "52 305 96 75",
+  outer: "28 78 144 222", hat: "68 10 78 46"
+};
+
+// =====================================================================
+// 4. EKRANO ATNAUJINIMAS – kiekviena dalis piešiama iš "state"
+// =====================================================================
+const $ = id => document.getElementById(id);
+const byId = id => CATALOG.find(i => i.id === id);
+
+function renderFilters() {
+  const all = { all: "Visi", ...CATEGORIES };
+  $("filters").innerHTML = Object.entries(all).map(([key, name]) =>
+    `<button class="chip ${state.filter === key ? "active" : ""}" data-filter="${key}">${name}</button>`).join("");
+}
+
+function renderCatalog() {
+  const b = BODY_SHAPES.medium;
+  const items = CATALOG.filter(i => state.filter === "all" || i.category === state.filter);
+  $("catalog").innerHTML = items.map(i => `
+    <button class="item ${state.worn[i.category] === i.id ? "worn" : ""}" data-item="${i.id}">
+      <svg viewBox="${THUMB_VIEW[i.category]}">${drawItem(i, b)}</svg>
+      <b>${i.name}</b><small>${CATEGORIES[i.category]} · ${i.style}</small>
+    </button>`).join("");
+}
+
+function renderShapes() {
+  $("shapes").innerHTML = Object.entries(BODY_SHAPES).map(([key, s]) =>
+    `<button class="chip ${state.shape === key ? "active" : ""}" data-shape="${key}">${s.name}</button>`).join("");
+}
+
+function renderAvatar() {
+  const b = BODY_SHAPES[state.shape];
+  let svg = drawBody(b);
+  for (const cat of LAYER_ORDER) {
+    if (state.worn[cat]) svg += drawItem(byId(state.worn[cat]), b);
+  }
+  $("avatar").innerHTML = svg;
+}
+
+function renderWornList() {
+  const cats = Object.keys(CATEGORIES).filter(c => state.worn[c]);
+  $("wornList").innerHTML = cats.length
+    ? cats.map(c => `<li><span>${CATEGORIES[c]}: <b>${byId(state.worn[c]).name}</b></span>
+                     <button data-remove="${c}">nuimti</button></li>`).join("")
+    : `<li class="empty">Paspausk drabužį kataloge, kad jį apvilktum.</li>`;
+}
+
+function render() {
+  renderFilters(); renderCatalog(); renderShapes(); renderAvatar(); renderWornList();
+}
+
+// =====================================================================
+// 5. PASPAUDIMAI – kas vyksta, kai vartotojas ką nors spaudžia
+// =====================================================================
+document.addEventListener("click", e => {
+  const el = e.target.closest("button");
+  if (!el) return;
+  const d = el.dataset;
+  if (d.filter) state.filter = d.filter;
+  if (d.shape)  state.shape = d.shape;
+  if (d.item) {
+    const item = byId(Number(d.item));
+    // Paspaudus jau apvilktą drabužį – nuimam, kitaip – uždedam (pakeičiam seną)
+    if (state.worn[item.category] === item.id) delete state.worn[item.category];
+    else state.worn[item.category] = item.id;
+  }
+  if (d.remove) delete state.worn[d.remove];
+  if (el.id === "clearAll") state.worn = {};
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
