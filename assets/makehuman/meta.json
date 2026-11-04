@@ -1,0 +1,52 @@
+{
+ "female-w0.png": {
+  "gender": "female",
+  "mh_weight": 0.0,
+  "height_units": 15.897866666666665
+ },
+ "female-w1.png": {
+  "gender": "female",
+  "mh_weight": 0.25,
+  "height_units": 15.897866666666665
+ },
+ "female-w2.png": {
+  "gender": "female",
+  "mh_weight": 0.5,
+  "height_units": 15.897866666666665
+ },
+ "female-w3.png": {
+  "gender": "female",
+  "mh_weight": 0.75,
+  "height_units": 15.897866666666665
+ },
+ "female-w4.png": {
+  "gender": "female",
+  "mh_weight": 1.0,
+  "height_units": 15.897866666666665
+ },
+ "male-w0.png": {
+  "gender": "male",
+  "mh_weight": 0.0,
+  "height_units": 17.304000000000002
+ },
+ "male-w1.png": {
+  "gender": "male",
+  "mh_weight": 0.25,
+  "height_units": 17.304000000000002
+ },
+ "male-w2.png": {
+  "gender": "male",
+  "mh_weight": 0.5,
+  "height_units": 17.304000000000002
+ },
+ "male-w3.png": {
+  "gender": "male",
+  "mh_weight": 0.75,
+  "height_units": 17.304000000000002
+ },
+ "male-w4.png": {
+  "gender": "male",
+  "mh_weight": 1.0,
+  "height_units": 17.304000000000002
+ }
+}
