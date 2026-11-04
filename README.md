@@ -5,14 +5,15 @@ Aprangos derinių kūrimo programėlė – Junior Achievement verslumo konkurso 
 ## Kaip paleisti
 Atsisiųskite visą repozitoriją (Code → Download ZIP), išskleiskite ir du kartus spustelėkite `index.html`. Aplankas `assets` turi būti šalia `index.html`. Nieko diegti nereikia.
 
-## Kas jau veikia (demo v2)
+## Kas jau veikia (demo v3)
 - Drabužių katalogas (15 pavyzdinių drabužių) su filtru pagal kategoriją
 - Tikroviškas avataras iš MakeHuman figūrų: lytis (moteris/vyras), 5 svorio lygiai, mastelis pagal ūgį
 - Drabužiai „pasiūti“ ant 3D kūno kiekvienai figūrai, spalva uždedama naršyklėje
+- Derinių išsaugojimas su pavadinimu, sąrašas su mažais avatarais, atidarymas, ištrynimas
+- Programėlė atsimena lytį, ūgį, svorį ir dabartinį derinį (naršyklės atmintis – tik šiame kompiuteryje)
 - Drabužių uždėjimas ant avataro vienu paspaudimu, nuėmimas, „Nurengti viską“
 
 ## Kas bus toliau
-- Derinių išsaugojimas ir peržiūra
 - Savų drabužių nuotraukų įkėlimas
 - DI stilistas
 

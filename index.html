@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NovaFit – demo v2</title>
+<title>NovaFit – demo v3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -67,6 +67,25 @@
   .measure input[type=number] { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:10px; font:inherit; background:#0f0d17; color:var(--ink); }
   .measure input[type=number]:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(139,92,246,.25); }
   .hint { color:var(--muted); font-size:12px; margin:0 0 8px; }
+  .save-row { display:flex; gap:8px; margin-top:14px; }
+  .save-row input { flex:1; min-width:0; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:#0f0d17; color:var(--ink); font:inherit; font-size:13px; }
+  .save-row input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(139,92,246,.25); }
+  .primary { border:none; border-radius:12px; padding:10px 16px; font-weight:600; font-size:13px; color:#fff;
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); box-shadow:0 8px 24px rgba(139,92,246,.35); white-space:nowrap; }
+  .primary:hover { filter:brightness(1.1); }
+  #saveMsg { margin-top:8px; min-height:16px; }
+  #saveMsg.ok { color:#a78bfa; }
+  .saved { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; }
+  .outfit { position:relative; border:1px solid var(--line); background:#14111e; border-radius:16px; transition:.15s; }
+  .outfit:hover { border-color:#3a3257; transform:translateY(-1px); }
+  .outfit .open { width:100%; border:none; background:none; padding:7px; text-align:left; }
+  .outfit canvas { width:100%; height:auto; display:block; border-radius:11px;
+    background:radial-gradient(closest-side at 50% 60%, rgba(139,92,246,.35), #1a1628); }
+  .outfit b { display:block; font-size:13px; font-weight:600; margin-top:7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .outfit small { color:var(--muted); font-size:11px; }
+  .outfit .del { position:absolute; top:10px; right:10px; width:26px; height:26px; border-radius:50%; border:1px solid var(--line);
+    background:rgba(11,9,18,.75); color:var(--muted); font-size:15px; line-height:1; }
+  .outfit .del:hover { color:#fff; border-color:#e5484d; background:#e5484d; }
 </style>
 </head>
 <body>
@@ -74,7 +93,7 @@
 <header>
   <h1 class="sr">NovaFit</h1>
   <img class="logo" src="assets/logo.png" alt="NovaFit logotipas">
-  <span>demo v2 – derinių kūrimas</span>
+  <span>demo v3 – derinių kūrimas</span>
 </header>
 
 <main>
@@ -83,6 +102,9 @@
     <h2>Katalogas</h2>
     <div class="chips" id="filters"></div>
     <div class="grid" id="catalog"></div>
+
+    <h2 style="margin-top:22px">Mano deriniai</h2>
+    <div class="saved" id="saved"></div>
   </section>
 
   <!-- DEŠINĖ: avataras ir dabartinis derinys -->
@@ -110,6 +132,11 @@
       <button class="link" id="clearAll">Nurengti viską</button>
     </div>
     <ul class="worn-list" id="wornList"></ul>
+    <div class="save-row">
+      <input id="outfitName" maxlength="40" placeholder="Derinio pavadinimas (pvz. Į mokyklą)">
+      <button class="primary" id="saveOutfit">Išsaugoti derinį</button>
+    </div>
+    <p class="hint" id="saveMsg"></p>
   </section>
 </main>
 
@@ -379,11 +406,11 @@ const FIG = {
   naturalCm: { female: 159, male: 173 },             // kokio ūgio figūra nupiešta
   levelBmi: [17.5, 20, 22.5, 26.5, 31]               // svorio lygiai w0..w4 ≈ šie KMI
 };
-function figureId() {
-  const bmi = state.weight / ((state.height / 100) ** 2);
+function figureId(cfg) {
+  const bmi = cfg.weight / ((cfg.height / 100) ** 2);
   let best = 0;
   FIG.levelBmi.forEach((v, i) => { if (Math.abs(v - bmi) < Math.abs(FIG.levelBmi[best] - bmi)) best = i; });
-  return `${state.gender}-w${best}`;
+  return `${cfg.gender}-w${best}`;
 }
 
 // Paveikslėlių įkėlimas (kiekvienas įkeliamas tik vieną kartą)
@@ -417,43 +444,156 @@ async function coloredLayer(fig, type, color) {
   return colorCache[key];
 }
 
+// Įkeliam visus paveikslėlius, kurių reikia vienam avatarui (kūnas + drabužiai)
+async function prepareAvatar(cfg) {
+  const fig = figureId(cfg);
+  const body = await loadImg(`assets/avatar/${fig}/body.png`);
+  const layers = [];
+  for (const cat of LAYER_ORDER) {
+    const item = cfg.worn[cat] && byId(cfg.worn[cat]);
+    if (item) layers.push(await coloredLayer(fig, item.type, item.color));
+  }
+  return { body, layers };
+}
+
+// Nupiešiam avatarą į drobę (W×H – loginis dydis, 620×800)
+function paintAvatar(ctx, W, H, cfg, prep, showHeight) {
+  ctx.clearRect(0, 0, W, H);
+  // Mastelis: aukštesnis žmogus = didesnė figūra. Pėdos visada toje pačioje vietoje.
+  const k = cfg.height / FIG.naturalCm[cfg.gender];
+  const groundY = H - 20;
+  ctx.save();
+  ctx.translate(W / 2, groundY);
+  ctx.scale(k, k);
+  ctx.translate(-FIG.imgW / 2, -FIG.footY);
+  ctx.fillStyle = "rgba(139,92,246,.28)";
+  ctx.beginPath(); ctx.ellipse(FIG.imgW / 2, FIG.footY - 2, 120, 12, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.drawImage(prep.body, 0, 0);
+  for (const l of prep.layers) ctx.drawImage(l, 0, 0);
+  ctx.restore();
+  if (showHeight) {   // Ūgio linija
+    const headY = groundY - cfg.height * FIG.pxPerCm;
+    ctx.strokeStyle = "rgba(167,139,250,.6)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(10, headY); ctx.lineTo(140, headY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#a78bfa"; ctx.font = "22px Manrope, system-ui, sans-serif";
+    ctx.fillText(`${cfg.height} cm`, 10, headY - 8);
+  }
+}
+
 let renderToken = 0;
 async function renderAvatar() {
   const token = ++renderToken;
   const b = bodyFromMeasures(state.height, state.weight);
   $("bodyInfo").textContent = `Figūra: ${figureName(b.bmi)}`;
-  const fig = figureId();
+  const cfg = { gender: state.gender, height: state.height, weight: state.weight, worn: { ...state.worn } };
   try {
-    const body = await loadImg(`assets/avatar/${fig}/body.png`);
-    const layers = [];
-    for (const cat of LAYER_ORDER) {
-      const item = state.worn[cat] && byId(state.worn[cat]);
-      if (item) layers.push(await coloredLayer(fig, item.type, item.color));
-    }
+    const prep = await prepareAvatar(cfg);
     if (token !== renderToken) return;   // kol krovėm, vartotojas jau pakeitė kažką kita
-    const cv = $("avatar"), ctx = cv.getContext("2d");
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    // Mastelis: aukštesnis žmogus = didesnė figūra. Pėdos visada toje pačioje vietoje.
-    const k = state.height / FIG.naturalCm[state.gender];
-    const groundY = cv.height - 20;
-    ctx.save();
-    ctx.translate(cv.width / 2, groundY);
-    ctx.scale(k, k);
-    ctx.translate(-FIG.imgW / 2, -FIG.footY);
-    ctx.fillStyle = "rgba(139,92,246,.28)";
-    ctx.beginPath(); ctx.ellipse(FIG.imgW / 2, FIG.footY - 2, 120, 12, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.drawImage(body, 0, 0);
-    for (const l of layers) ctx.drawImage(l, 0, 0);
-    ctx.restore();
-    // Ūgio linija
-    const headY = groundY - state.height * FIG.pxPerCm;
-    ctx.strokeStyle = "rgba(167,139,250,.6)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(10, headY); ctx.lineTo(140, headY); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = "#a78bfa"; ctx.font = "22px Manrope, system-ui, sans-serif";
-    ctx.fillText(`${state.height} cm`, 10, headY - 8);
+    const cv = $("avatar");
+    paintAvatar(cv.getContext("2d"), cv.width, cv.height, cfg, prep, true);
   } catch (err) {
     $("bodyInfo").textContent = "Nepavyko įkelti avataro paveikslėlių (aplankas assets/avatar turi būti šalia index.html).";
     console.error(err);
+  }
+}
+
+// =====================================================================
+// IŠSAUGOJIMAS – naršyklės atmintyje (localStorage).
+// Duomenys lieka šiame kompiuteryje ir šioje naršyklėje.
+// =====================================================================
+const STORE_KEY = "novafit-v1";
+let outfits = [];   // [{ id, name, created, gender, height, weight, worn }]
+
+function persist() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      profile: { gender: state.gender, height: state.height, weight: state.weight },
+      current: state.worn,
+      outfits
+    }));
+    return true;
+  } catch (e) { return false; }   // pvz. naršyklė neleidžia saugoti
+}
+
+function restore() {
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) {}
+  if (!data) return;
+  const p = data.profile || {};
+  if (p.gender === "female" || p.gender === "male") state.gender = p.gender;
+  if (p.height) state.height = clamp(p.height, 140, 210);
+  if (p.weight) state.weight = clamp(p.weight, 40, 150);
+  state.worn = cleanWorn(data.current);
+  outfits = Array.isArray(data.outfits) ? data.outfits.map(o => ({ ...o, worn: cleanWorn(o.worn) })) : [];
+}
+// Paliekam tik tuos drabužius, kurie dar yra kataloge
+function cleanWorn(w) {
+  const out = {};
+  for (const [cat, id] of Object.entries(w || {})) {
+    const item = byId(id);
+    if (item && item.category === cat) out[cat] = id;
+  }
+  return out;
+}
+
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function saveOutfit() {
+  const msg = $("saveMsg");
+  if (!Object.keys(state.worn).length) {
+    msg.className = "hint"; msg.textContent = "Pirmiausia apvilk bent vieną drabužį.";
+    return;
+  }
+  const name = $("outfitName").value.trim() || `Derinys ${outfits.length + 1}`;
+  outfits.unshift({
+    id: Date.now(), name, created: new Date().toISOString(),
+    gender: state.gender, height: state.height, weight: state.weight, worn: { ...state.worn }
+  });
+  const ok = persist();
+  $("outfitName").value = "";
+  msg.className = ok ? "hint ok" : "hint";
+  msg.textContent = ok ? `Išsaugota: „${name}“ ✓` : "Derinys pridėtas, bet naršyklė neleidžia jo įsiminti – perkrovus dings.";
+  renderSaved();
+}
+
+function openOutfit(id) {
+  const o = outfits.find(x => x.id === id);
+  if (!o) return;
+  state.gender = o.gender; state.height = o.height; state.weight = o.weight; state.worn = { ...o.worn };
+  $("saveMsg").className = "hint ok"; $("saveMsg").textContent = `Atidaryta: „${o.name}“`;
+}
+
+function deleteOutfit(id) {
+  const o = outfits.find(x => x.id === id);
+  outfits = outfits.filter(x => x.id !== id);
+  persist();
+  $("saveMsg").className = "hint"; $("saveMsg").textContent = o ? `Ištrinta: „${o.name}“` : "";
+  renderSaved();
+}
+
+function renderSaved() {
+  if (!outfits.length) {
+    $("saved").innerHTML = `<p class="empty">Dar nėra išsaugotų derinių. Sukurk derinį ir spausk „Išsaugoti derinį“.</p>`;
+    return;
+  }
+  $("saved").innerHTML = outfits.map(o => `
+    <div class="outfit">
+      <button class="open" data-outfit="${o.id}" title="Atidaryti derinį">
+        <canvas width="155" height="200" data-thumb="${o.id}"></canvas>
+        <b>${esc(o.name)}</b>
+        <small>${new Date(o.created).toLocaleDateString("lt-LT")} · ${Object.keys(o.worn).length} drab.</small>
+      </button>
+      <button class="del" data-del="${o.id}" title="Ištrinti derinį">×</button>
+    </div>`).join("");
+  // Mažieji avatarai piešiami tuo pačiu būdu kaip didysis, tik 4 kartus mažesni
+  for (const o of outfits) {
+    prepareAvatar(o).then(prep => {
+      const cv = document.querySelector(`canvas[data-thumb="${o.id}"]`);
+      if (!cv) return;
+      const ctx = cv.getContext("2d");
+      ctx.setTransform(0.25, 0, 0, 0.25, 0, 0);
+      paintAvatar(ctx, 620, 800, o, prep, false);
+    }).catch(err => console.error(err));
   }
 }
 
@@ -467,6 +607,7 @@ function renderWornList() {
 
 function render() {
   renderFilters(); renderCatalog(); renderGenders(); renderShapes(); renderMeasures(); renderAvatar(); renderWornList();
+  persist();   // atsimenam lytį, ūgį, svorį ir dabartinį derinį
 }
 
 // Ūgio/svorio keitimas: slankiklis ir skaičiaus laukelis veikia kartu
@@ -479,6 +620,7 @@ function onMeasure(field, min, max, el) {
   const other = el.type === "range" ? field + "Num" : field + "Range";
   $(other).value = state[field];
   renderAvatar();
+  persist();
 }
 $("heightRange").addEventListener("input", e => onMeasure("height", 140, 210, e.target));
 $("heightNum").addEventListener("input",   e => onMeasure("height", 140, 210, e.target));
@@ -506,10 +648,17 @@ document.addEventListener("click", e => {
   }
   if (d.remove) delete state.worn[d.remove];
   if (el.id === "clearAll") state.worn = {};
+  if (el.id === "saveOutfit") { saveOutfit(); return; }
+  if (d.del) { deleteOutfit(Number(d.del)); return; }
+  if (d.outfit) openOutfit(Number(d.outfit));
   render();
 });
+// Enter pavadinimo laukelyje = išsaugoti
+$("outfitName").addEventListener("keydown", e => { if (e.key === "Enter") saveOutfit(); });
 
+restore();
 render();
+renderSaved();
 </script>
 </body>
 </html>
