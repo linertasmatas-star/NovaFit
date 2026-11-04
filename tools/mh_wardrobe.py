@@ -184,20 +184,22 @@ _edges = np.concatenate([faces[:, [k, (k + 1) % 4]] for k in range(4)])
 _edges = _edges[_edges[:, 0] != _edges[:, 1]]
 _edges = np.unique(np.sort(_edges, axis=1), axis=0)
 
-def smooth(v, iters, mask=None, lam=0.5):
+def smooth(v, iters, mask=None, lam=0.5, taubin=True):
     """Išlygina paviršių (audinys nesilanksto pagal kiekvieną kūno smulkmeną)."""
     v = v.copy()
     deg = np.zeros(len(v))
     np.add.at(deg, _edges[:, 0], 1); np.add.at(deg, _edges[:, 1], 1)
     deg[deg == 0] = 1
-    for _ in range(iters):
+    for it in range(iters * 2):
+        # Taubin metodas: pakaitomis lyginam ir „išpučiam“ atgal, kad kūnas nesusitrauktų
+        step = lam if (it % 2 == 0 or not taubin) else -(lam + 0.03)
         acc = np.zeros_like(v)
         np.add.at(acc, _edges[:, 0], v[_edges[:, 1]])
         np.add.at(acc, _edges[:, 1], v[_edges[:, 0]])
         delta = acc / deg[:, None] - v
         if mask is not None:
             delta[~mask] = 0
-        v += lam * delta
+        v += step * delta
     return v
 
 def normals(v):
@@ -353,6 +355,18 @@ def underwear(img_skin, img_cloth, v, female, sx, sy):
 def save(img, path):
     img.resize((W // SS, H // SS), Image.LANCZOS).save(path, optimize=True)
 
+# Krūtinės „smaigaliai“: mažas plotelis, kurį išlyginam (manekeno ir audinio išvaizdai)
+def _tip_zone():
+    vf = build(0.0, 0.5)
+    used = np.zeros(len(vf), bool); used[USED] = True
+    zone = np.zeros(len(vf), bool)
+    for side in (-1, 1):
+        cand = used & (PART == "torso") & (np.sign(vf[:, 0]) == side)
+        tip = np.argmax(np.where(cand, vf[:, 2], -9))
+        zone |= used & (np.linalg.norm(vf - vf[tip], axis=1) < 0.24)
+    return zone
+TIP_ZONE = _tip_zone()
+
 # =====================================================================
 # 6. Generavimas
 # =====================================================================
@@ -369,10 +383,13 @@ for gname, gval in (("female", 0.0), ("male", 1.0)):
         ctx = {"ground": v[USED, 1].min()}
         # Manekenui švelniai išlyginam krūtinės/liemens smulkmenas
         vb = smooth(v, 3, mask=(PART == "torso") & (Y > PELVIS_Y + 1.5))
+        vb = smooth(vb, 40, mask=TIP_ZONE, taubin=False)
         skin, sx, sy = draw_layer(vb, SKIN, ctx=ctx)
         cloth, _, _ = draw_layer(vb, UNDER, ctx=ctx)
         save(underwear(skin, cloth, v, gname == "female", sx, sy), os.path.join(OUT, fig, "body.png"))
-        vs = smooth(v, 8, mask=PART != "head")     # audiniui – lygesnis paviršius
+        vs = smooth(v, 30, mask=PART != "head")     # audiniui – lygesnis paviršius
+        # krūtinės srityje audinys „ištempiamas“ – be smulkių kūno detalių
+        vs = smooth(vs, 40, mask=TIP_ZONE, taubin=False)
         for kind, (fsel, thick) in GARMENTS.items():
             src = v if kind in ("cap", "beanie") else vs
             img, sx, sy = draw_layer(src, CLOTH, fsel=fsel, inflate=thick, ctx=ctx)
