@@ -29,6 +29,10 @@
     background:linear-gradient(90deg,#c4b5fd,#8b5cf6 55%,#6366f1); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   header span { color:var(--muted); font-size:13px; }
+  header { align-items:center; }
+  .logo { width:110px; height:110px; border-radius:18px; display:block; background:#fff;
+    box-shadow:0 0 0 1px var(--line), 0 10px 30px rgba(0,0,0,.45), 0 0 26px rgba(139,92,246,.25); }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
   main { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr); gap:18px; padding:0 20px 24px; max-width:1140px; margin:0 auto; }
   @media (max-width:760px) { main { grid-template-columns:1fr; } }
   .panel {
@@ -69,7 +73,8 @@
 <body>
 
 <header>
-  <h1>NovaFit</h1>
+  <h1 class="sr">NovaFit</h1>
+  <img class="logo" src="assets/logo.png" alt="NovaFit logotipas">
   <span>demo v2 – derinių kūrimas</span>
 </header>
 
