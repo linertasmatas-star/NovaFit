@@ -336,16 +336,19 @@ def details(img, kind, v, sx, sy):
     return img
 
 def underwear(img_skin, img_cloth, v, female, sx, sy):
+    """Neutralus bazinis sluoksnis: šortukai visiems, moteriai – sportinė palaidinukė."""
     pelvis, neck = J(v, "pelvis"), J(v, "neck")
     leg, shoulder = J(v, "l-upper-leg"), J(v, "l-shoulder")
     L = neck[1] - pelvis[1]
     hw = abs(leg[0]) * 2.6
-    top, outer, crotch = pelvis[1] + 0.10 * L, leg[1] - 0.04 * L, leg[1] - 0.17 * L
-    shapes = [[(-hw, top), (hw, top), (hw, outer), (0.35 * hw, crotch), (-0.35 * hw, crotch), (-hw, outer)]]
+    top, outer, crotch = pelvis[1] + 0.12 * L, leg[1] - 0.22 * L, leg[1] - 0.30 * L
+    shapes = [[(-hw, top), (hw, top), (hw, outer), (0.3 * hw, crotch), (-0.3 * hw, crotch), (-hw, outer)]]
     if female:
-        sw = abs(shoulder[0]) * 0.92
-        y1, y2 = pelvis[1] + 0.55 * L, pelvis[1] + 0.80 * L
-        shapes.append([(-sw, y2), (sw, y2), (sw, y1), (-sw, y1)])
+        sw = abs(shoulder[0]) * 0.9
+        y1, y_side, y2 = pelvis[1] + 0.45 * L, pelvis[1] + 0.78 * L, pelvis[1] + 0.97 * L
+        shapes.append([(-sw, y1), (sw, y1), (sw, y_side), (0.55 * sw, y2), (0.35 * sw, y2),
+                       (0.2 * sw, y_side + 0.05 * L), (-0.2 * sw, y_side + 0.05 * L),
+                       (-0.35 * sw, y2), (-0.55 * sw, y2), (-sw, y_side)])
     mask = Image.new("L", (W, H), 0)
     md = ImageDraw.Draw(mask)
     for s in shapes:
@@ -384,6 +387,8 @@ for gname, gval in (("female", 0.0), ("male", 1.0)):
         # Manekenui švelniai išlyginam krūtinės/liemens smulkmenas
         vb = smooth(v, 3, mask=(PART == "torso") & (Y > PELVIS_Y + 1.5))
         vb = smooth(vb, 40, mask=TIP_ZONE, taubin=False)
+        if gname == "female":   # po palaidinuke – lygi krūtinės forma be smulkmenų
+            vb = smooth(vb, 30, mask=(PART == "torso") & (Y > PELVIS_Y + 1.6), taubin=True)
         skin, sx, sy = draw_layer(vb, SKIN, ctx=ctx)
         cloth, _, _ = draw_layer(vb, UNDER, ctx=ctx)
         save(underwear(skin, cloth, v, gname == "female", sx, sy), os.path.join(OUT, fig, "body.png"))
