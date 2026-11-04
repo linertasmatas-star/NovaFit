@@ -28,7 +28,7 @@
   .item b { display:block; font-size:13px; margin-top:5px; }
   .item small { color:var(--muted); font-size:11px; }
   .stage { display:flex; justify-content:center; }
-  #avatar { width:100%; max-width:240px; height:auto; }
+  #avatar { width:100%; max-width:360px; height:auto; }
   .row { display:flex; justify-content:space-between; align-items:center; }
   .worn-list { list-style:none; padding:0; margin:10px 0 0; font-size:13px; }
   .worn-list li { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); }
@@ -44,7 +44,7 @@
 
 <header>
   <h1>NovaFit</h1>
-  <span>demo v1 – derinių kūrimas</span>
+  <span>demo v2 – derinių kūrimas</span>
 </header>
 
 <main>
@@ -58,6 +58,7 @@
   <!-- DEŠINĖ: avataras ir dabartinis derinys -->
   <section class="panel">
     <h2>Tavo matmenys</h2>
+    <div class="chips" id="genders"></div>
     <div class="measure">
       <span>Ūgis</span>
       <input type="range" id="heightRange" min="140" max="210" step="1">
@@ -73,7 +74,7 @@
     <p class="hint">Greitas pasirinkimas:</p>
     <div class="chips" id="shapes"></div>
     <p class="hint" id="bodyInfo"></p>
-    <div class="stage"><svg id="avatar" viewBox="0 -62 200 450"></svg></div>
+    <div class="stage"><canvas id="avatar" width="620" height="800"></canvas></div>
     <div class="row">
       <h2 style="margin:10px 0 0">Dabartinis derinys</h2>
       <button class="link" id="clearAll">Nurengti viską</button>
@@ -154,6 +155,7 @@ const LAYER_ORDER = ["bottom", "shoes", "top", "outer", "hat"];
 // 2. BŪSENA – kas šiuo metu pasirinkta
 // =====================================================================
 const state = {
+  gender: "female", // "female" arba "male"
   height: 170,      // ūgis, cm
   weight: 65,       // svoris, kg
   worn: {},         // pvz. { top: 3, bottom: 5 } – kategorija → drabužio id
@@ -330,20 +332,99 @@ function renderMeasures() {
   $("weightRange").value = $("weightNum").value = state.weight;
 }
 
-function renderAvatar() {
-  const b = bodyFromMeasures(state.height, state.weight);
-  const k = state.height / REF_HEIGHT;          // aukštesnis žmogus = didesnis avataras
-  let svg = drawBody(b);
-  for (const cat of LAYER_ORDER) {
-    if (state.worn[cat]) svg += drawItem(byId(state.worn[cat]), b);
+function renderGenders() {
+  const g = { female: "Moteris", male: "Vyras" };
+  $("genders").innerHTML = Object.entries(g).map(([key, name]) =>
+    `<button class="chip ${state.gender === key ? "active" : ""}" data-gender="${key}">${name}</button>`).join("");
+}
+
+// =====================================================================
+// AVATARAS IŠ MAKEHUMAN FIGŪRŲ
+// Paveikslėliai yra aplanke assets/avatar/<figūra>/ : body.png ir po vieną
+// failą kiekvienam drabužio tipui. Drabužiai pilki – spalvą uždedam čia.
+// =====================================================================
+const FIG = {
+  imgW: 468, imgH: 648, footY: 642,                 // paveikslėlio dydis ir pėdų linija
+  pxPerCm: 3.6,                                      // 36 taškai = 10 cm
+  naturalCm: { female: 159, male: 173 },             // kokio ūgio figūra nupiešta
+  levelBmi: [17.5, 20, 22.5, 26.5, 31]               // svorio lygiai w0..w4 ≈ šie KMI
+};
+function figureId() {
+  const bmi = state.weight / ((state.height / 100) ** 2);
+  let best = 0;
+  FIG.levelBmi.forEach((v, i) => { if (Math.abs(v - bmi) < Math.abs(FIG.levelBmi[best] - bmi)) best = i; });
+  return `${state.gender}-w${best}`;
+}
+
+// Paveikslėlių įkėlimas (kiekvienas įkeliamas tik vieną kartą)
+const imgCache = {};
+function loadImg(src) {
+  if (!imgCache[src]) imgCache[src] = new Promise((ok, fail) => {
+    const im = new Image();
+    im.onload = () => ok(im);
+    im.onerror = () => fail(new Error("Nepavyko įkelti " + src));
+    im.src = src;
+  });
+  return imgCache[src];
+}
+
+// Pilką drabužio sluoksnį nuspalvinam: pilka × spalva (šešėliai išlieka)
+const colorCache = {};
+async function coloredLayer(fig, type, color) {
+  const key = `${fig}/${type}/${color}`;
+  if (!colorCache[key]) {
+    const im = await loadImg(`assets/avatar/${fig}/${type}.png`);
+    const c = document.createElement("canvas");
+    c.width = im.width; c.height = im.height;
+    const x = c.getContext("2d");
+    x.drawImage(im, 0, 0);
+    x.globalCompositeOperation = "multiply";
+    x.fillStyle = color; x.fillRect(0, 0, c.width, c.height);
+    x.globalCompositeOperation = "destination-in";   // paliekam tik drabužio formą
+    x.drawImage(im, 0, 0);
+    colorCache[key] = c;
   }
-  // Viską padidinam/sumažinam nuo pėdų (y = 370), kad avataras „stovėtų“ vietoje
-  const headTop = 370 - (370 - 27) * k;
-  $("avatar").innerHTML = `
-    <line x1="4" y1="${headTop}" x2="60" y2="${headTop}" stroke="#bbb" stroke-dasharray="3 3"/>
-    <text x="4" y="${headTop - 4}" font-size="10" fill="#999">${state.height} cm</text>
-    <g transform="translate(100 370) scale(${k}) translate(-100 -370)">${svg}</g>`;
+  return colorCache[key];
+}
+
+let renderToken = 0;
+async function renderAvatar() {
+  const token = ++renderToken;
+  const b = bodyFromMeasures(state.height, state.weight);
   $("bodyInfo").textContent = `Figūra: ${figureName(b.bmi)}`;
+  const fig = figureId();
+  try {
+    const body = await loadImg(`assets/avatar/${fig}/body.png`);
+    const layers = [];
+    for (const cat of LAYER_ORDER) {
+      const item = state.worn[cat] && byId(state.worn[cat]);
+      if (item) layers.push(await coloredLayer(fig, item.type, item.color));
+    }
+    if (token !== renderToken) return;   // kol krovėm, vartotojas jau pakeitė kažką kita
+    const cv = $("avatar"), ctx = cv.getContext("2d");
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    // Mastelis: aukštesnis žmogus = didesnė figūra. Pėdos visada toje pačioje vietoje.
+    const k = state.height / FIG.naturalCm[state.gender];
+    const groundY = cv.height - 20;
+    ctx.save();
+    ctx.translate(cv.width / 2, groundY);
+    ctx.scale(k, k);
+    ctx.translate(-FIG.imgW / 2, -FIG.footY);
+    ctx.fillStyle = "rgba(0,0,0,.07)";
+    ctx.beginPath(); ctx.ellipse(FIG.imgW / 2, FIG.footY - 2, 120, 12, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.drawImage(body, 0, 0);
+    for (const l of layers) ctx.drawImage(l, 0, 0);
+    ctx.restore();
+    // Ūgio linija
+    const headY = groundY - state.height * FIG.pxPerCm;
+    ctx.strokeStyle = "#bbb"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(10, headY); ctx.lineTo(140, headY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#999"; ctx.font = "22px system-ui, sans-serif";
+    ctx.fillText(`${state.height} cm`, 10, headY - 8);
+  } catch (err) {
+    $("bodyInfo").textContent = "Nepavyko įkelti avataro paveikslėlių (aplankas assets/avatar turi būti šalia index.html).";
+    console.error(err);
+  }
 }
 
 function renderWornList() {
@@ -355,7 +436,7 @@ function renderWornList() {
 }
 
 function render() {
-  renderFilters(); renderCatalog(); renderShapes(); renderMeasures(); renderAvatar(); renderWornList();
+  renderFilters(); renderCatalog(); renderGenders(); renderShapes(); renderMeasures(); renderAvatar(); renderWornList();
 }
 
 // Ūgio/svorio keitimas: slankiklis ir skaičiaus laukelis veikia kartu
@@ -384,6 +465,7 @@ document.addEventListener("click", e => {
   if (!el) return;
   const d = el.dataset;
   if (d.filter) state.filter = d.filter;
+  if (d.gender) state.gender = d.gender;
   // Greitas pasirinkimas: pagal dabartinį ūgį nustatom tipišką svorį
   if (d.shape) state.weight = clamp(Math.round(PRESET_BMI[d.shape] * (state.height / 100) ** 2), 40, 150);
   if (d.item) {
