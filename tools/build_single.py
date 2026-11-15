@@ -25,7 +25,8 @@ def swap(old, new):
     assert html.count(old) == 1, "index.html pasikeitė, nerandu: " + old
     html = html.replace(old, new)
 
-swap('src="assets/logo.png"', 'src="' + data_uri("assets/logo.png") + '"')
+assert 'src="assets/logo.png"' in html
+html = html.replace('src="assets/logo.png"', 'src="' + data_uri("assets/logo.png") + '"')   # logotipas – keliose vietose
 swap("im.src = src;", "im.src = NF_ASSETS[src] || src;")
 swap("<script>\n// ====", "<script>\nconst NF_ASSETS = " + json.dumps(assets) + ";\n// ====")
 open(out, "w", encoding="utf-8").write(html)

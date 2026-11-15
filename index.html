@@ -114,13 +114,44 @@
   .color-row input[type=color] { width:46px; height:40px; padding:0; border:1px solid var(--line); border-radius:10px; background:none; cursor:pointer; }
   .sheet .actions { display:flex; justify-content:flex-end; align-items:center; gap:14px; margin-top:16px; }
   .sheet .link { font-size:13px; }
+
+  /* ===== TITULINIS EKRANAS ===== */
+  .intro { position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center;
+    background:
+      radial-gradient(700px 480px at 50% 38%, rgba(139,92,246,.34), transparent 70%),
+      radial-gradient(900px 500px at 105% 100%, rgba(99,102,241,.20), transparent 60%),
+      radial-gradient(800px 500px at -5% 0%, rgba(139,92,246,.16), transparent 60%),
+      var(--bg);
+    transition:opacity .45s ease, visibility 0s linear 0s; }
+  .intro.hide { opacity:0; visibility:hidden; pointer-events:none; transition:opacity .45s ease, visibility 0s linear .45s; }
+  .intro-in { max-width:460px; animation:introIn .7s ease both; }
+  .intro-logo { width:min(230px, 60vw); height:auto; display:block; margin:0 auto 22px; filter:drop-shadow(0 0 34px rgba(139,92,246,.55)); }
+  .intro-tag { margin:0 0 30px; font-family:"Space Grotesk", Manrope, sans-serif; font-weight:500; font-size:clamp(18px, 4.6vw, 23px); line-height:1.35; color:var(--ink); text-wrap:balance; }
+  .intro-tag span { display:block; margin-top:8px; font-family:Manrope, system-ui, sans-serif; font-weight:400; font-size:14px; color:var(--muted); }
+  .intro-go { font-size:16px; padding:14px 44px; border-radius:999px; box-shadow:0 10px 34px rgba(139,92,246,.5); }
+  .intro-go:focus-visible { outline:2px solid rgba(196,181,253,.7); outline-offset:4px; }
+  .intro-note { margin:26px 0 0; font-size:12px; color:var(--muted); letter-spacing:.4px; }
+  @keyframes introIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion:reduce) { .intro, .intro.hide { transition:none; } .intro-in { animation:none; } }
+  .home { border:none; background:none; padding:0; border-radius:12px; }
 </style>
 </head>
 <body>
 
+<!-- TITULINIS EKRANAS: rodomas atidarius programėlę; „Pradėti“ – pereinam į programėlę -->
+<div class="intro" id="intro">
+  <div class="intro-in">
+    <img class="intro-logo" src="assets/logo.png" alt="NovaFit">
+    <p class="intro-tag">Susikurk derinį ir pasimatuok jį ant savo avataro
+      <span>Tavo spinta, tavo deriniai – vienoje vietoje.</span></p>
+    <button class="primary intro-go" id="introGo">Pradėti</button>
+    <p class="intro-note">demo v4</p>
+  </div>
+</div>
+
 <header>
   <h1 class="sr">NovaFit</h1>
-  <img class="logo" src="assets/logo.png" alt="NovaFit logotipas">
+  <button class="home" id="home" title="Į titulinį ekraną"><img class="logo" src="assets/logo.png" alt="NovaFit logotipas"></button>
   <span>demo v4 – mano spinta</span>
 </header>
 
@@ -947,6 +978,9 @@ document.addEventListener("click", e => {
   const el = e.target.closest("button");
   if (!el) return;
   const d = el.dataset;
+  // --- Titulinis ekranas ---
+  if (el.id === "introGo") { $("intro").classList.add("hide"); return; }
+  if (el.id === "home") { $("intro").classList.remove("hide"); $("introGo").focus(); return; }
   // --- Mano spinta ---
   if (el.id === "addItem") { $("photoInput").click(); return; }
   if (el.id === "itemCancel") { closeItemForm(); return; }
@@ -981,6 +1015,7 @@ document.addEventListener("click", e => {
 $("outfitName").addEventListener("keydown", e => { if (e.key === "Enter") saveOutfit(); });
 
 restore();
+$("introGo").focus();   // kad titulinį ekraną būtų galima praeiti ir klavišu Enter
 render();
 renderSaved();
 </script>
