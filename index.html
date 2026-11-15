@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NovaFit – demo v3</title>
+<title>NovaFit – demo v4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -83,9 +83,37 @@
     background:radial-gradient(closest-side at 50% 60%, rgba(139,92,246,.35), #1a1628); }
   .outfit b { display:block; font-size:13px; font-weight:600; margin-top:7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .outfit small { color:var(--muted); font-size:11px; }
-  .outfit .del { position:absolute; top:10px; right:10px; width:26px; height:26px; border-radius:50%; border:1px solid var(--line);
+  .del { position:absolute; top:10px; right:10px; width:26px; height:26px; border-radius:50%; border:1px solid var(--line);
     background:rgba(11,9,18,.75); color:var(--muted); font-size:15px; line-height:1; }
-  .outfit .del:hover { color:#fff; border-color:#e5484d; background:#e5484d; }
+  .del:hover { color:#fff; border-color:#e5484d; background:#e5484d; }
+  .del.edit { right:40px; font-size:12px; }
+  .del.edit:hover { border-color:var(--accent); background:var(--accent); }
+
+  /* ===== MANO SPINTA ===== */
+  .tabs { display:flex; gap:4px; padding:4px; margin-bottom:12px; border:1px solid var(--line); border-radius:14px; background:#0f0d17; }
+  .tab { flex:1; border:none; background:none; border-radius:10px; padding:9px 10px; font-size:14px; font-weight:600; color:var(--muted); transition:.15s; }
+  .tab:hover { color:var(--ink); }
+  .tab.active { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 0 18px var(--glow); }
+  .item.own { position:relative; padding:0; }
+  .item.own .open { width:100%; border:none; background:none; padding:7px; text-align:left; }
+  .photo { position:relative; display:block; height:84px; border-radius:11px; overflow:hidden; background:#2a2342; }
+  .photo img { width:100%; height:100%; object-fit:cover; display:block; }
+  .photo i { position:absolute; left:6px; bottom:6px; width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow:0 1px 6px rgba(0,0,0,.6); }
+  .item.add { border-style:dashed; border-color:#4a3f73; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:140px; }
+  .item.add .plus { font-size:30px; line-height:1; color:#a78bfa; }
+  .grid .empty { grid-column:1/-1; margin:4px 0 0; }
+  #wardrobeMsg { margin:10px 0 0; min-height:16px; }
+  .modal { position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(5,4,10,.72); backdrop-filter:blur(4px); }
+  .modal[hidden] { display:none; }
+  .sheet { width:100%; max-width:380px; max-height:calc(100vh - 32px); overflow:auto; }
+  .sheet canvas { display:block; margin:0 auto 6px; max-width:100%; max-height:240px; border-radius:14px; cursor:crosshair; touch-action:manipulation; }
+  .field { display:block; font-size:12px; color:var(--muted); margin-top:12px; }
+  .field input[type=text], .field select { display:block; width:100%; margin-top:5px; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:#0f0d17; color:var(--ink); font:inherit; font-size:16px; }
+  .field input:focus, .field select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(139,92,246,.25); }
+  .color-row { display:flex; align-items:center; gap:10px; margin-top:6px; }
+  .color-row input[type=color] { width:46px; height:40px; padding:0; border:1px solid var(--line); border-radius:10px; background:none; cursor:pointer; }
+  .sheet .actions { display:flex; justify-content:flex-end; align-items:center; gap:14px; margin-top:16px; }
+  .sheet .link { font-size:13px; }
 </style>
 </head>
 <body>
@@ -93,15 +121,18 @@
 <header>
   <h1 class="sr">NovaFit</h1>
   <img class="logo" src="assets/logo.png" alt="NovaFit logotipas">
-  <span>demo v3 – derinių kūrimas</span>
+  <span>demo v4 – mano spinta</span>
 </header>
 
 <main>
   <!-- KAIRĖ: drabužių katalogas -->
   <section class="panel">
-    <h2>Katalogas</h2>
+    <h2 class="sr">Drabužiai</h2>
+    <div class="tabs" id="tabs"></div>
     <div class="chips" id="filters"></div>
     <div class="grid" id="catalog"></div>
+    <p class="hint" id="wardrobeMsg"></p>
+    <input type="file" id="photoInput" accept="image/*" hidden>
 
     <h2 style="margin-top:22px">Mano deriniai</h2>
     <div class="saved" id="saved"></div>
@@ -140,6 +171,32 @@
   </section>
 </main>
 
+<!-- LANGAS: naujo (arba taisomo) savo drabužio duomenys -->
+<div class="modal" id="itemForm" hidden>
+  <div class="panel sheet">
+    <h2 id="itemFormTitle">Naujas drabužis</h2>
+    <canvas id="itemPhoto" width="240" height="240"></canvas>
+    <label class="field">Kas tai?
+      <select id="itemType"></select>
+    </label>
+    <label class="field">Pavadinimas (nebūtina)
+      <input type="text" id="itemName" maxlength="40" placeholder="pvz. Mėgstamiausias džemperis">
+    </label>
+    <div class="field">Spalva
+      <div class="color-row">
+        <input type="color" id="itemColor" aria-label="Drabužio spalva">
+        <button class="link" id="colorAuto">Grąžinti automatinę</button>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:8px">Spalvą parinkome iš nuotraukos. Jei netinka – paspausk ant drabužio nuotraukoje arba pasirink pats.</p>
+    <p class="hint" id="itemMsg" style="min-height:16px"></p>
+    <div class="actions">
+      <button class="link" id="itemCancel">Atšaukti</button>
+      <button class="primary" id="itemSave">Pridėti į spintą</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // =====================================================================
 // 1. DUOMENYS – čia lengva pridėti ar pakeisti drabužius
@@ -172,6 +229,27 @@ const CATALOG = [
   { id:13, name:"Juoda kepuraitė",      category:"hat",    type:"cap",      color:"#222222", style:"Sportinis" },
   { id:14, name:"Žalia kepurė",         category:"hat",    type:"beanie",   color:"#4f7a5a", style:"Kasdienis" }
 ];
+
+// Drabužių tipai, kuriuos mokam uždėti ant avataro (kiekvienam yra sluoksnio failas).
+// Įkeldamas savo drabužį vartotojas pasirenka vieną iš jų.
+const TYPES = {
+  tshirt:   { name:"Marškinėliai",          category:"top" },
+  sweater:  { name:"Megztinis / džemperis", category:"top" },
+  shirt:    { name:"Marškiniai",            category:"top" },
+  pants:    { name:"Kelnės / džinsai",      category:"bottom" },
+  shorts:   { name:"Šortai",                category:"bottom" },
+  skirt:    { name:"Sijonas",               category:"bottom" },
+  sneakers: { name:"Sportbačiai",           category:"shoes" },
+  boots:    { name:"Batai",                 category:"shoes" },
+  jacket:   { name:"Striukė",               category:"outer" },
+  coat:     { name:"Paltas",                category:"outer" },
+  cap:      { name:"Kepuraitė su snapeliu", category:"hat" },
+  beanie:   { name:"Žieminė kepurė",        category:"hat" }
+};
+
+// MANO SPINTA – vartotojo įkelti drabužiai:
+// [{ id, name, category, type, color, photo }]  (photo – sumažinta nuotrauka)
+let wardrobe = [];
 
 // Kūno formos: s = pečiai, w = liemuo, h = klubai, a = rankų storis (pusė pločio)
 const BODY_SHAPES = {
@@ -216,7 +294,8 @@ const state = {
   height: 170,      // ūgis, cm
   weight: 65,       // svoris, kg
   worn: {},         // pvz. { top: 3, bottom: 5 } – kategorija → drabužio id
-  filter: "all"     // kuri katalogo kategorija rodoma
+  filter: "all",    // kuri katalogo kategorija rodoma
+  tab: "catalog"    // "catalog" (pavyzdinis katalogas) arba "mine" (mano spinta)
 };
 
 // =====================================================================
@@ -360,7 +439,14 @@ const THUMB_VIEW = {
 // 4. EKRANO ATNAUJINIMAS – kiekviena dalis piešiama iš "state"
 // =====================================================================
 const $ = id => document.getElementById(id);
-const byId = id => CATALOG.find(i => i.id === id);
+// Drabužį randam pagal id – ir kataloge, ir mano spintoje
+const byId = id => CATALOG.find(i => i.id === id) || wardrobe.find(i => i.id === id);
+
+function renderTabs() {
+  const tabs = { catalog: "Katalogas", mine: `Mano spinta${wardrobe.length ? ` (${wardrobe.length})` : ""}` };
+  $("tabs").innerHTML = Object.entries(tabs).map(([key, name]) =>
+    `<button class="tab ${state.tab === key ? "active" : ""}" data-tab="${key}">${name}</button>`).join("");
+}
 
 function renderFilters() {
   const all = { all: "Visi", ...CATEGORIES };
@@ -369,6 +455,7 @@ function renderFilters() {
 }
 
 function renderCatalog() {
+  if (state.tab === "mine") { renderWardrobe(); return; }
   const b = BODY_SHAPES.medium;
   const items = CATALOG.filter(i => state.filter === "all" || i.category === state.filter);
   $("catalog").innerHTML = items.map(i => `
@@ -376,6 +463,26 @@ function renderCatalog() {
       <svg viewBox="${THUMB_VIEW[i.category]}">${drawItem(i, b)}</svg>
       <b>${i.name}</b><small>${CATEGORIES[i.category]} · ${i.style}</small>
     </button>`).join("");
+}
+
+// Mano spinta: mygtukas „Įkelti drabužį“ ir įkeltų drabužių nuotraukos
+function renderWardrobe() {
+  const items = wardrobe.filter(i => state.filter === "all" || i.category === state.filter);
+  let html = `<button class="item add" id="addItem">
+      <span class="plus">+</span><b>Įkelti drabužį</b><small>Nuotrauka iš telefono ar kompiuterio</small>
+    </button>`;
+  html += items.map(i => `
+    <div class="item own ${state.worn[i.category] === i.id ? "worn" : ""}">
+      <button class="open" data-item="${i.id}" title="Apvilkti / nuimti">
+        <span class="photo"><img src="${i.photo}" alt=""><i style="background:${i.color}"></i></span>
+        <b>${esc(i.name)}</b><small>${CATEGORIES[i.category]} · ${TYPES[i.type].name}</small>
+      </button>
+      <button class="del edit" data-edititem="${i.id}" title="Taisyti">✎</button>
+      <button class="del" data-delitem="${i.id}" title="Ištrinti iš spintos">×</button>
+    </div>`).join("");
+  if (!wardrobe.length) html += `<p class="empty">Tavo spinta dar tuščia. Nufotografuok drabužį (geriausia – ant lygaus, vienspalvio fono) ir įkelk.</p>`;
+  else if (!items.length) html += `<p class="empty">Šioje kategorijoje savo drabužių dar neturi.</p>`;
+  $("catalog").innerHTML = html;
 }
 
 function renderShapes() {
@@ -515,7 +622,24 @@ function persist() {
   } catch (e) { return false; }   // pvz. naršyklė neleidžia saugoti
 }
 
+// Mano spinta saugoma atskirai (nuotraukos užima daugiau vietos)
+const WARDROBE_KEY = "novafit-wardrobe-v1";
+function persistWardrobe() {
+  try { localStorage.setItem(WARDROBE_KEY, JSON.stringify(wardrobe)); return true; }
+  catch (e) { return false; }   // pvz. naršyklės atmintis pilna
+}
+function restoreWardrobe() {
+  let list = null;
+  try { list = JSON.parse(localStorage.getItem(WARDROBE_KEY)); } catch (e) {}
+  if (!Array.isArray(list)) return;
+  wardrobe = list.filter(i => i && TYPES[i.type] && /^#[0-9a-f]{6}$/i.test(i.color) &&
+      typeof i.photo === "string" && i.photo.startsWith("data:image/"))
+    .map(i => ({ id: Number(i.id), name: String(i.name || TYPES[i.type].name), type: i.type,
+                 category: TYPES[i.type].category, color: i.color, photo: i.photo }));
+}
+
 function restore() {
+  restoreWardrobe();   // pirma spinta – kad deriniai rastų savo drabužius
   let data = null;
   try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) {}
   if (!data) return;
@@ -597,16 +721,166 @@ function renderSaved() {
   }
 }
 
+// =====================================================================
+// MANO SPINTA – drabužio įkėlimas iš nuotraukos
+// Kas tikra: nuotrauka saugoma spintoje, spalva paimama iš nuotraukos.
+// Kas imitacija: ant avataro uždedama ne pati nuotrauka, o mūsų paruoštas
+// to tipo sluoksnis, nuspalvintas drabužio spalva.
+// =====================================================================
+const PHOTO_MAX = 240;   // nuotrauką sumažinam iki tiek taškų – kad tilptų atmintyje
+let draft = null;        // šiuo metu pildomas drabužis: { id, color, autoColor }
+
+const toHex = (r, g, b) => "#" + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
+
+// Pagrindinė drabužio spalva. Idėja: nuotraukos kraštai – tai fonas, drabužis – per vidurį.
+// Atmetam taškus, panašius į foną, o iš likusių išrenkam dažniausią spalvą (vidurys svarbesnis).
+function detectColor(ctx, w, h) {
+  const d = ctx.getImageData(0, 0, w, h).data;
+  const at = (x, y) => { const i = (y * w + x) * 4; return [d[i], d[i + 1], d[i + 2]]; };
+  const bg = [0, 0, 0]; let n = 0;
+  const addBg = (x, y) => { const p = at(x, y); bg[0] += p[0]; bg[1] += p[1]; bg[2] += p[2]; n++; };
+  for (let x = 0; x < w; x++) { addBg(x, 0); addBg(x, h - 1); }
+  for (let y = 0; y < h; y++) { addBg(0, y); addBg(w - 1, y); }
+  bg.forEach((v, i) => bg[i] = v / n);
+
+  const pick = skipBackground => {
+    const buckets = new Map();
+    for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) {
+      const [r, g, b] = at(x, y);
+      if (skipBackground && Math.abs(r - bg[0]) + Math.abs(g - bg[1]) + Math.abs(b - bg[2]) < 70) continue;
+      const dx = x / w - 0.5, dy = y / h - 0.5;
+      const weight = Math.exp(-(dx * dx + dy * dy) * 8);
+      const key = (r >> 5) * 64 + (g >> 5) * 8 + (b >> 5);
+      const s = buckets.get(key) || [0, 0, 0, 0];
+      s[0] += r * weight; s[1] += g * weight; s[2] += b * weight; s[3] += weight;
+      buckets.set(key, s);
+    }
+    let best = null, total = 0;
+    for (const s of buckets.values()) { total += s[3]; if (!best || s[3] > best[3]) best = s; }
+    return { best, total };
+  };
+  let res = pick(true);
+  // Jei beveik viskas panašu į foną (pvz. balti marškinėliai ant balto) – imam vidurio spalvą
+  if (!res.best || res.total < 20) res = pick(false);
+  const s = res.best;
+  return toHex(s[0] / s[3], s[1] / s[3], s[2] / s[3]);
+}
+
+function setDraftColor(hex) { draft.color = hex; $("itemColor").value = hex; }
+
+// Nupiešiam (sumažintą) nuotrauką formos lange
+function drawPhoto(img) {
+  const k = Math.min(1, PHOTO_MAX / Math.max(img.width, img.height));
+  const cv = $("itemPhoto");
+  cv.width = Math.max(1, Math.round(img.width * k));
+  cv.height = Math.max(1, Math.round(img.height * k));
+  const ctx = cv.getContext("2d", { willReadFrequently: true });
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height);   // permatomas fonas → baltas
+  ctx.drawImage(img, 0, 0, cv.width, cv.height);
+  return ctx;
+}
+
+function openItemForm(img, item) {
+  const ctx = drawPhoto(img);
+  const auto = detectColor(ctx, $("itemPhoto").width, $("itemPhoto").height);
+  draft = { id: item ? item.id : null, autoColor: auto };
+  setDraftColor(item ? item.color : auto);
+  // Tipų sąrašas, sugrupuotas pagal vietą ant kūno
+  $("itemType").innerHTML = `<option value="">– pasirink –</option>` +
+    Object.entries(CATEGORIES).map(([cat, catName]) => `<optgroup label="${catName}">` +
+      Object.entries(TYPES).filter(([, t]) => t.category === cat)
+        .map(([key, t]) => `<option value="${key}">${t.name}</option>`).join("") + `</optgroup>`).join("");
+  $("itemType").value = item ? item.type : "";
+  $("itemName").value = item ? item.name : "";
+  $("itemFormTitle").textContent = item ? "Taisyti drabužį" : "Naujas drabužis";
+  $("itemSave").textContent = item ? "Išsaugoti" : "Pridėti į spintą";
+  $("itemMsg").textContent = "";
+  $("itemForm").hidden = false;
+}
+function closeItemForm() { $("itemForm").hidden = true; draft = null; }
+
+function wardrobeMsg(text, ok) { $("wardrobeMsg").className = ok ? "hint ok" : "hint"; $("wardrobeMsg").textContent = text; }
+
+function saveItem() {
+  const type = $("itemType").value;
+  if (!type) { $("itemMsg").textContent = "Pasirink, koks tai drabužis."; return; }
+  const name = $("itemName").value.trim() || TYPES[type].name;
+  const data = { name, type, category: TYPES[type].category, color: draft.color };
+  const before = JSON.stringify(wardrobe);
+  let item = wardrobe.find(i => i.id === draft.id);
+  if (item) {
+    // Jei pasikeitė vieta ant kūno – nuimam nuo avataro, kad neliktų ne toje vietoje
+    if (item.category !== data.category && state.worn[item.category] === item.id) delete state.worn[item.category];
+    Object.assign(item, data);
+  } else {
+    item = { id: Date.now(), ...data, photo: $("itemPhoto").toDataURL("image/jpeg", 0.82) };
+    wardrobe.unshift(item);
+  }
+  if (!persistWardrobe()) {
+    wardrobe = JSON.parse(before);
+    $("itemMsg").textContent = "Nepavyko išsaugoti – naršyklės atmintis pilna arba saugoti neleidžiama. Ištrink kelis drabužius ir bandyk dar kartą.";
+    return;
+  }
+  state.worn[item.category] = item.id;   // iškart parodom ant avataro
+  state.tab = "mine";
+  outfits = outfits.map(o => ({ ...o, worn: cleanWorn(o.worn) }));
+  closeItemForm();
+  wardrobeMsg(`Spintoje: „${name}“ ✓`, true);
+  render(); renderSaved();
+}
+
+function deleteItem(id) {
+  const item = wardrobe.find(i => i.id === id);
+  if (!item) return;
+  wardrobe = wardrobe.filter(i => i.id !== id);
+  persistWardrobe();
+  // Ištrintą drabužį nuimam nuo avataro ir iš išsaugotų derinių
+  state.worn = cleanWorn(state.worn);
+  outfits = outfits.map(o => ({ ...o, worn: cleanWorn(o.worn) }));
+  wardrobeMsg(`Ištrinta iš spintos: „${item.name}“`, false);
+  renderSaved();
+}
+
+// Failas → paveikslėlis
+function fileToImage(file) {
+  return new Promise((ok, fail) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { ok(im); URL.revokeObjectURL(url); };
+    im.onerror = () => { fail(new Error("Nepavyko perskaityti nuotraukos")); URL.revokeObjectURL(url); };
+    im.src = url;
+  });
+}
+$("photoInput").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";            // kad tą pačią nuotrauką būtų galima pasirinkti dar kartą
+  if (!file) return;
+  try { openItemForm(await fileToImage(file)); }
+  catch (err) { wardrobeMsg("Šios nuotraukos atidaryti nepavyko. Pabandyk JPG arba PNG.", false); }
+});
+// Paspaudus ant nuotraukos – paimam tos vietos spalvą
+$("itemPhoto").addEventListener("click", e => {
+  const cv = e.currentTarget, r = cv.getBoundingClientRect();
+  const x = Math.round((e.clientX - r.left) * cv.width / r.width), y = Math.round((e.clientY - r.top) * cv.height / r.height);
+  const x0 = clamp(x - 3, 0, cv.width - 1), y0 = clamp(y - 3, 0, cv.height - 1);
+  const w = Math.min(7, cv.width - x0), h = Math.min(7, cv.height - y0);
+  const d = cv.getContext("2d").getImageData(x0, y0, w, h).data;
+  const sum = [0, 0, 0];
+  for (let i = 0; i < d.length; i += 4) { sum[0] += d[i]; sum[1] += d[i + 1]; sum[2] += d[i + 2]; }
+  setDraftColor(toHex(...sum.map(v => v / (d.length / 4))));
+});
+$("itemColor").addEventListener("input", e => { if (draft) draft.color = e.target.value; });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && draft) closeItemForm(); });
+
 function renderWornList() {
   const cats = Object.keys(CATEGORIES).filter(c => state.worn[c]);
   $("wornList").innerHTML = cats.length
-    ? cats.map(c => `<li><span>${CATEGORIES[c]}: <b>${byId(state.worn[c]).name}</b></span>
+    ? cats.map(c => `<li><span>${CATEGORIES[c]}: <b>${esc(byId(state.worn[c]).name)}</b></span>
                      <button data-remove="${c}">nuimti</button></li>`).join("")
     : `<li class="empty">Paspausk drabužį kataloge, kad jį apvilktum.</li>`;
 }
 
 function render() {
-  renderFilters(); renderCatalog(); renderGenders(); renderShapes(); renderMeasures(); renderAvatar(); renderWornList();
+  renderTabs(); renderFilters(); renderCatalog(); renderGenders(); renderShapes(); renderMeasures(); renderAvatar(); renderWornList();
   persist();   // atsimenam lytį, ūgį, svorį ir dabartinį derinį
 }
 
@@ -636,6 +910,19 @@ document.addEventListener("click", e => {
   const el = e.target.closest("button");
   if (!el) return;
   const d = el.dataset;
+  // --- Mano spinta ---
+  if (el.id === "addItem") { $("photoInput").click(); return; }
+  if (el.id === "itemCancel") { closeItemForm(); return; }
+  if (el.id === "itemSave") { saveItem(); return; }
+  if (el.id === "colorAuto") { setDraftColor(draft.autoColor); return; }
+  if (d.edititem) {
+    const item = wardrobe.find(i => i.id === Number(d.edititem));
+    if (item) loadImg(item.photo).then(img => openItemForm(img, item));
+    return;
+  }
+  if (d.delitem) deleteItem(Number(d.delitem));
+  if (d.tab) state.tab = d.tab;
+  // --- Katalogas, avataras, deriniai ---
   if (d.filter) state.filter = d.filter;
   if (d.gender) state.gender = d.gender;
   // Greitas pasirinkimas: pagal dabartinį ūgį nustatom tipišką svorį
