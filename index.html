@@ -48,8 +48,8 @@
   .item { border:1px solid var(--line); background:#14111e; border-radius:16px; padding:7px; text-align:left; transition:.15s; }
   .item:hover { border-color:#3a3257; transform:translateY(-1px); }
   .item.worn { border-color:var(--accent); background:#1b1530; box-shadow:0 0 0 1px var(--accent), 0 0 22px var(--glow); }
-  .item svg { width:100%; height:84px; display:block; border-radius:11px;
-    background:radial-gradient(circle at 50% 40%, #4a3f73, #2a2342 80%); }
+  .item canvas.thumb { width:100%; height:84px; display:block; border-radius:11px; object-fit:contain;
+    background:radial-gradient(circle at 50% 35%, #f3f1fb, #c9c3e0 90%); }
   .item b { display:block; font-size:13px; font-weight:600; margin-top:7px; }
   .item small { color:var(--muted); font-size:11px; }
   .stage { display:flex; justify-content:center; border-radius:18px; margin:4px 0 6px;
@@ -429,7 +429,7 @@ function drawItem(item, b) {
   return "";
 }
 
-// Mažos peržiūros kataloge: kurią avataro dalį rodyti
+// (Nebenaudojama: senosios pieštos katalogo miniatiūros. Dabar miniatiūros – iš avataro sluoksnių.)
 const THUMB_VIEW = {
   top: "35 78 130 168", bottom: "45 160 110 205", shoes: "52 305 96 75",
   outer: "28 78 144 222", hat: "68 10 78 46"
@@ -460,9 +460,46 @@ function renderCatalog() {
   const items = CATALOG.filter(i => state.filter === "all" || i.category === state.filter);
   $("catalog").innerHTML = items.map(i => `
     <button class="item ${state.worn[i.category] === i.id ? "worn" : ""}" data-item="${i.id}">
-      <svg viewBox="${THUMB_VIEW[i.category]}">${drawItem(i, b)}</svg>
+      <canvas class="thumb" width="236" height="168" data-thumbitem="${i.id}"></canvas>
       <b>${i.name}</b><small>${CATEGORIES[i.category]} · ${i.style}</small>
     </button>`).join("");
+  // Miniatiūros piešiamos iš tų pačių sluoksnių, kurie uždedami ant avataro
+  for (const i of items) {
+    const cv = document.querySelector(`canvas[data-thumbitem="${i.id}"]`);
+    paintThumb(cv, i).catch(err => console.error(err));
+  }
+}
+
+// Kur sluoksnio paveikslėlyje yra pats drabužis: [x, y, plotis, aukštis].
+// Išmatuota vidutinei figūrai (w2); naudojama katalogo miniatiūroms iškirpti.
+const THUMB_BOX = {
+  female: { tshirt:[141,154,186,178], sweater:[77,153,314,182], shirt:[78,158,312,179], pants:[156,313,156,300],
+            shorts:[165,313,138,123], skirt:[142,313,184,144], sneakers:[152,600,164,47], boots:[153,549,162,97],
+            jacket:[74,154,320,193], coat:[73,153,322,351], cap:[206,67,56,30], beanie:[203,52,63,45] },
+  male:   { tshirt:[134,108,200,190], sweater:[52,107,364,194], shirt:[54,109,360,192], pants:[148,280,172,332],
+            shorts:[159,280,150,108], skirt:[133,280,202,155], sneakers:[138,602,192,45], boots:[139,541,190,105],
+            jacket:[49,107,370,206], coat:[48,105,372,377], cap:[204,16,60,33], beanie:[200,0,68,48] }
+};
+// Batai sluoksnyje stovi toli vienas nuo kito – miniatiūroje juos sustatom greta. Čia vieno bato plotis.
+const SHOE_W = { female: { sneakers:43, boots:44 }, male: { sneakers:45, boots:52 } };
+async function paintThumb(cv, item) {
+  const gender = state.gender;
+  const layer = await coloredLayer(`${gender}-w2`, item.type, item.color);
+  const [x, y, w, h] = THUMB_BOX[gender][item.type];
+  const shoe = SHOE_W[gender][item.type];
+  // Gabalai, kuriuos iškerpam iš sluoksnio: visas drabužis arba du batai atskirai
+  const parts = shoe ? [[x, shoe], [x + w - shoe, shoe]] : [[x, w]];
+  const gap = 10, total = parts.reduce((sum, p) => sum + p[1], 0) + gap * (parts.length - 1);
+  // Mažų drabužių (kepurių, batų) per daug nedidinam – kitaip vaizdas išplaukia
+  const pad = 16, k = Math.min((cv.width - 2 * pad) / total, (cv.height - 2 * pad) / h, 2.2);
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.imageSmoothingQuality = "high";
+  let dx = (cv.width - total * k) / 2;
+  for (const [px, pw] of parts) {
+    ctx.drawImage(layer, px, y, pw, h, dx, (cv.height - h * k) / 2, pw * k, h * k);
+    dx += (pw + gap) * k;
+  }
 }
 
 // Mano spinta: mygtukas „Įkelti drabužį“ ir įkeltų drabužių nuotraukos
