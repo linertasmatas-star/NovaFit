@@ -115,6 +115,12 @@
   .sheet .actions { display:flex; justify-content:flex-end; align-items:center; gap:14px; margin-top:16px; }
   .sheet .link { font-size:13px; }
 
+  /* ===== BLOKAI (kompiuteryje – tiesiog panelių dalys) ===== */
+  .blk-saved { margin-top:22px; }
+  .blk-measures summary { list-style:none; pointer-events:none; }
+  .blk-measures summary::-webkit-details-marker { display:none; }
+  #measureSummary { display:none; }
+
   /* ===== STILISTAS ===== */
   .stylist { margin:4px 0 14px; padding:12px 14px; border:1px solid #3a3257; border-radius:16px;
     background:linear-gradient(135deg, rgba(139,92,246,.14), rgba(99,102,241,.06)); }
@@ -147,6 +153,48 @@
   @keyframes introIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
   @media (prefers-reduced-motion:reduce) { .intro, .intro.hide { transition:none; } .intro-in { animation:none; } }
   .home { border:none; background:none; padding:0; border-radius:12px; }
+
+  /* ===== TELEFONAS (siauras ekranas) =====
+     Avataras prilimpa ekrano viršuje ir lieka matomas, kol slenki drabužius. */
+  @media (max-width:760px) {
+    header { padding:10px 14px; }
+    .logo { width:78px; }
+    main { display:flex; flex-direction:column; gap:12px; padding:0 12px 28px; }
+    .panel { display:contents; }                       /* panelės „ištirpsta“ – blokus rikiuojam patys */
+    .blk, .stylist { background:linear-gradient(180deg, var(--card2), var(--card)); border:1px solid var(--line);
+      border-radius:18px; padding:14px; margin:0; }
+    .stylist { background:linear-gradient(135deg, rgba(139,92,246,.20), rgba(99,102,241,.08)), var(--card); border-color:#3a3257; }
+    .stage         { order:1; }
+    .blk-measures  { order:2; }
+    .stylist       { order:3; }
+    .blk-catalog   { order:4; }
+    .blk-outfit    { order:5; }
+    .blk-saved     { order:6; }
+
+    .stage { position:sticky; top:0; z-index:5; height:40vh; min-height:250px; margin:0 -12px; border-radius:0 0 24px 24px;
+      border-bottom:1px solid var(--line); box-shadow:0 14px 30px rgba(0,0,0,.55);
+      background:radial-gradient(closest-side at 50% 55%, rgba(139,92,246,.32), rgba(99,102,241,.10) 60%, transparent 100%), var(--bg); }
+    #avatar { height:100%; width:auto; max-width:100%; }
+
+    .blk-measures summary { pointer-events:auto; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .blk-measures summary h2 { margin:0; }
+    .blk-measures[open] summary { margin-bottom:12px; }
+    #measureSummary { display:block; font-size:12px; color:var(--muted); text-align:right; }
+    #measureSummary::after { content:" ▾"; color:#a78bfa; }
+    .blk-measures[open] #measureSummary::after { content:" ▴"; }
+
+    /* Didesni mygtukai pirštui; 16px laukeliai – kad iPhone nepriartintų ekrano */
+    .chip { padding:9px 15px; font-size:14px; }
+    .tab { padding:11px 10px; }
+    .del { width:30px; height:30px; top:8px; right:8px; }
+    .del.edit { right:44px; }
+    .worn-list button, .link { padding:8px 6px; }
+    .measure input[type=number], .save-row input { font-size:16px; }
+    .save-row { flex-wrap:wrap; }
+    .save-row input { flex-basis:100%; }
+    .save-row .primary { width:100%; padding:13px; }
+    .grid { grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); }
+  }
 </style>
 </head>
 <body>
@@ -171,20 +219,32 @@
 <main>
   <!-- KAIRĖ: drabužių katalogas -->
   <section class="panel">
-    <h2 class="sr">Drabužiai</h2>
-    <div class="tabs" id="tabs"></div>
-    <div class="chips" id="filters"></div>
-    <div class="grid" id="catalog"></div>
-    <p class="hint" id="wardrobeMsg"></p>
-    <input type="file" id="photoInput" accept="image/*" hidden>
-
-    <h2 style="margin-top:22px">Mano deriniai</h2>
-    <div class="saved" id="saved"></div>
+    <!-- STILISTAS: pasirenki progą – derinys užsideda ant avataro -->
+    <div class="stylist">
+      <h2>Stilistas</h2>
+      <p class="hint">Kur ruošiesi? Parinksiu derinį – pirmiausia iš tavo spintos.</p>
+      <div class="chips" id="occasions"></div>
+      <div class="advice" id="advice" hidden></div>
+    </div>
+    <div class="blk blk-catalog">
+      <h2 class="sr">Drabužiai</h2>
+      <div class="tabs" id="tabs"></div>
+      <div class="chips" id="filters"></div>
+      <div class="grid" id="catalog"></div>
+      <p class="hint" id="wardrobeMsg"></p>
+      <input type="file" id="photoInput" accept="image/*" hidden>
+    </div>
+    <div class="blk blk-saved">
+      <h2>Mano deriniai</h2>
+      <div class="saved" id="saved"></div>
+    </div>
   </section>
 
   <!-- DEŠINĖ: avataras ir dabartinis derinys -->
   <section class="panel">
-    <h2>Tavo matmenys</h2>
+    <!-- Telefone šis blokas suskleidžiamas (rodoma tik santrauka), kompiuteryje – visada atidarytas -->
+    <details class="blk blk-measures" id="measures" open>
+    <summary><h2>Tavo matmenys</h2><span id="measureSummary"></span></summary>
     <div class="chips" id="genders"></div>
     <div class="measure">
       <span>Ūgis</span>
@@ -201,14 +261,9 @@
     <p class="hint">Greitas pasirinkimas:</p>
     <div class="chips" id="shapes"></div>
     <p class="hint" id="bodyInfo"></p>
-    <!-- STILISTAS: pasirenki progą – derinys užsideda ant avataro -->
-    <div class="stylist">
-      <h2>Stilistas</h2>
-      <p class="hint">Kur ruošiesi? Parinksiu derinį – pirmiausia iš tavo spintos.</p>
-      <div class="chips" id="occasions"></div>
-      <div class="advice" id="advice" hidden></div>
-    </div>
+    </details>
     <div class="stage"><canvas id="avatar" width="620" height="800"></canvas></div>
+    <div class="blk blk-outfit">
     <div class="row">
       <h2 style="margin:10px 0 0">Dabartinis derinys</h2>
       <button class="link" id="clearAll">Nurengti viską</button>
@@ -219,6 +274,7 @@
       <button class="primary" id="saveOutfit">Išsaugoti derinį</button>
     </div>
     <p class="hint" id="saveMsg"></p>
+    </div>
   </section>
 </main>
 
@@ -579,9 +635,14 @@ function renderShapes() {
 }
 
 // Ūgio ir svorio laukeliai rodo tą patį skaičių kaip ir būsena
+// Trumpa matmenų santrauka (telefone matoma, kai blokas suskleistas)
+function renderMeasureSummary() {
+  $("measureSummary").textContent = `${state.gender === "female" ? "Moteris" : "Vyras"} · ${state.height} cm · ${state.weight} kg`;
+}
 function renderMeasures() {
   $("heightRange").value = $("heightNum").value = state.height;
   $("weightRange").value = $("weightNum").value = state.weight;
+  renderMeasureSummary();
 }
 
 function renderGenders() {
@@ -1118,6 +1179,7 @@ function onMeasure(field, min, max, el) {
   // Atnaujinam kitą laukelį, bet ne tą, į kurį žmogus dabar rašo
   const other = el.type === "range" ? field + "Num" : field + "Range";
   $(other).value = state[field];
+  renderMeasureSummary();
   renderAvatar();
   persist();
 }
@@ -1175,6 +1237,12 @@ document.addEventListener("click", e => {
 });
 // Enter pavadinimo laukelyje = išsaugoti
 $("outfitName").addEventListener("keydown", e => { if (e.key === "Enter") saveOutfit(); });
+
+// Telefone matmenų blokas iš pradžių suskleistas, kompiuteryje – visada atidarytas
+const phone = window.matchMedia("(max-width:760px)");
+const fitMeasures = () => { $("measures").open = !phone.matches; };
+phone.addEventListener("change", fitMeasures);
+fitMeasures();
 
 restore();
 $("introGo").focus();   // kad titulinį ekraną būtų galima praeiti ir klavišu Enter
