@@ -167,7 +167,44 @@ GARMENTS = {
     "boots":    (rule(leg=(0.74, 9)), 0.10),
     "cap":      (rule(head=EYE_Y + 0.55), 0.07),
     "beanie":   (rule(head=EYE_Y + 0.35), 0.11),
+    # Laisvi (oversize) marškinėliai: ilgesni, rankovės iki alkūnių; forma keičiama funkcijoje baggy()
+    "oversize": (rule(torso=(PELVIS_Y - 0.15, CREW), arm=(-1, 0.40), extra=CAP_CREW), 0.08),
 }
+
+def baggy(vs, wide=1.10, sleeve=0.22):
+    """Laisvas kirpimas: audinys nebekartoja kūno, o kabo kaip lygus „vamzdis“ nuo plačiausios vietos
+    (pečių į šonus, krūtinės į priekį, menčių į nugarą). Prie kaklo ir pečių lieka kūno forma.
+    Rankovės – platesnės nei ranka."""
+    v = vs.copy()
+    used = np.zeros(len(v), bool); used[USED] = True
+    t = (PART == "torso") & used
+    ys = np.arange(v[t, 1].min(), v[t, 1].max() + 0.12, 0.12)
+    k = np.clip(np.digitize(v[:, 1], ys) - 1, 0, len(ys) - 1)
+    at = lambda prof: np.interp(v[:, 1], ys + 0.06, prof)
+    blur = lambda p: np.convolve(np.pad(p, 3, mode="edge"), np.ones(7) / 7, mode="valid")
+    def profile(vals):      # didžiausia reikšmė kiekviename aukštyje
+        return np.array([vals[t & (k == i)].max() if (t & (k == i)).any() else 1e-3 for i in range(len(ys))])
+    hang = lambda prof: np.maximum.accumulate(prof[::-1])[::-1]   # nuo viršaus žemyn nebemažėja – audinys kabo
+    zc = blur(np.array([v[t & (k == i), 2].mean() if (t & (k == i)).any() else 0.0 for i in range(len(ys))]))
+    dz = v[:, 2] - at(zc)
+    top = v[t, 1].max()
+    ramp = np.clip((top - ys - 0.7) / 0.9, 0, 1)            # prie kaklo ir pečių nieko nekeičiam
+    px, pf, pb = profile(np.abs(v[:, 0])), profile(np.maximum(dz, 0)), profile(np.maximum(-dz, 0))
+    a_ = blur(hang(px) * (1 + (wide - 1) * ramp))            # pusė pločio
+    bf, bb = blur(hang(pf) * 1.05), blur(hang(pb) * 1.05)    # gylis į priekį / į nugarą
+    m = (PART == "torso") | ((PART == "leg") & (v[:, 1] > PELVIS_Y - 2.5))
+    r = at(ramp)
+    x_new = v[:, 0] * (1 + (np.clip(at(a_) / np.maximum(at(px), 1e-3), 1, 2.2) - 1) * r)
+    shape = (1 - np.clip(np.abs(x_new) / np.maximum(at(a_), 1e-3), 0, 1) ** 3) ** (1 / 3)   # suapvalintas stačiakampis
+    z_tube = at(zc) + np.where(dz > 0, at(bf), -at(bb)) * shape
+    v[m, 0] = x_new[m]
+    v[m, 2] = (v[:, 2] * (1 - r) + z_tube * r)[m]
+    v = smooth(v, 40, mask=m)
+    a = PART == "arm"
+    _, vn = normals(v)
+    v[a] += vn[a] * (sleeve * np.clip(POS[a] / 0.12, 0, 1))[:, None]   # nuo peties platėja palaipsniui
+    v = smooth(v, 6, mask=m | a)
+    return v
 
 # =====================================================================
 # 5. Piešimas
@@ -396,7 +433,7 @@ for gname, gval in (("female", 0.0), ("male", 1.0)):
         # krūtinės srityje audinys „ištempiamas“ – be smulkių kūno detalių
         vs = smooth(vs, 40, mask=TIP_ZONE, taubin=False)
         for kind, (fsel, thick) in GARMENTS.items():
-            src = v if kind in ("cap", "beanie") else vs
+            src = v if kind in ("cap", "beanie") else baggy(vs) if kind == "oversize" else vs
             img, sx, sy = draw_layer(src, CLOTH, fsel=fsel, inflate=thick, ctx=ctx)
             pel = J(v, "pelvis")[1]
             knee = J(v, "l-knee")[1]
