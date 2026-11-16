@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NovaFit – demo v6</title>
+<title>NovaFit – demo v7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -220,14 +220,14 @@
     <p class="intro-tag">Susikurk derinį ir pasimatuok jį ant savo avataro
       <span>Tavo spinta, tavo deriniai – vienoje vietoje.</span></p>
     <button class="primary intro-go" id="introGo">Pradėti</button>
-    <p class="intro-note">demo v6</p>
+    <p class="intro-note">demo v7</p>
   </div>
 </div>
 
 <header>
   <h1 class="sr">NovaFit</h1>
   <button class="home" id="home" title="Į titulinį ekraną"><img class="logo" src="assets/logo.png" alt="NovaFit logotipas"></button>
-  <span>demo v6</span>
+  <span>demo v7</span>
 </header>
 
 <main>
@@ -339,8 +339,12 @@ const CATALOG = [
   { id:2,  name:"Juodi marškinėliai",   category:"top",    type:"tshirt",   color:"#2b2b2b", style:"Kasdienis" },
   { id:3,  name:"Smėlinis megztinis",   category:"top",    type:"sweater",  color:"#d8c3a0", style:"Kasdienis" },
   { id:15, name:"Žalias džemperis",     category:"top",    type:"sweater",  color:"#6f8f5e", style:"Sportinis" },
+  { id:16, name:"Balti laisvi marškinėliai", category:"top", type:"oversize", color:"#f4f4f4", style:"Kasdienis" },
+  { id:17, name:"Juodi laisvi marškinėliai", category:"top", type:"oversize", color:"#2b2b2b", style:"Kasdienis" },
   { id:4,  name:"Žydri marškiniai",     category:"top",    type:"shirt",    color:"#a9c8ea", style:"Elegantiškas" },
   { id:5,  name:"Klasikiniai džinsai",  category:"bottom", type:"pants",    color:"#3d5a80", style:"Kasdienis" },
+  { id:18, name:"Platūs džinsai",       category:"bottom", type:"widepants", color:"#5b7fa8", style:"Kasdienis" },
+  { id:19, name:"Smėlinės plačios kelnės", category:"bottom", type:"widepants", color:"#cdb891", style:"Kasdienis" },
   { id:6,  name:"Juodos kelnės",        category:"bottom", type:"pants",    color:"#262626", style:"Elegantiškas" },
   { id:7,  name:"Pilki šortai",         category:"bottom", type:"shorts",   color:"#9a9a9a", style:"Sportinis" },
   { id:8,  name:"Bordo sijonas",        category:"bottom", type:"skirt",    color:"#7a2335", style:"Elegantiškas" },
@@ -363,10 +367,12 @@ const CATALOG = [
 // Drabužių tipai, kuriuos mokam uždėti ant avataro (kiekvienam yra sluoksnio failas).
 // Įkeldamas savo drabužį vartotojas pasirenka vieną iš jų.
 const TYPES = {
-  tshirt:   { name:"Marškinėliai",          category:"top" },
+  tshirt:   { name:"Marškinėliai (aptempti)", category:"top" },
+  oversize: { name:"Laisvi (oversize) marškinėliai", category:"top" },
   sweater:  { name:"Megztinis / džemperis", category:"top" },
   shirt:    { name:"Marškiniai",            category:"top" },
-  pants:    { name:"Kelnės / džinsai",      category:"bottom" },
+  pants:    { name:"Siauros kelnės / džinsai", category:"bottom" },
+  widepants:{ name:"Plačios kelnės / džinsai", category:"bottom" },
   shorts:   { name:"Šortai",                category:"bottom" },
   skirt:    { name:"Sijonas",               category:"bottom" },
   sneakers: { name:"Sportbačiai",           category:"shoes" },
@@ -604,10 +610,10 @@ function renderCatalog() {
 // Kur sluoksnio paveikslėlyje yra pats drabužis: [x, y, plotis, aukštis].
 // Išmatuota vidutinei figūrai (w2); naudojama katalogo miniatiūroms iškirpti.
 const THUMB_BOX = {
-  female: { tshirt:[141,154,186,178], sweater:[77,153,314,182], shirt:[78,158,312,179], pants:[156,313,156,300],
+  female: { oversize:[122,161,224,196], widepants:[145,322,178,293], tshirt:[141,154,186,178], sweater:[77,153,314,182], shirt:[78,158,312,179], pants:[156,313,156,300],
             shorts:[165,313,138,123], skirt:[142,313,184,144], sneakers:[152,600,164,47], boots:[153,549,162,97],
             jacket:[74,154,320,193], coat:[73,153,322,351], cap:[206,67,56,30], beanie:[203,52,63,45] },
-  male:   { tshirt:[134,108,200,190], sweater:[52,107,364,194], shirt:[54,109,360,192], pants:[148,280,172,332],
+  male:   { oversize:[104,111,260,210], widepants:[136,287,196,326], tshirt:[134,108,200,190], sweater:[52,107,364,194], shirt:[54,109,360,192], pants:[148,280,172,332],
             shorts:[159,280,150,108], skirt:[133,280,202,155], sneakers:[138,602,192,45], boots:[139,541,190,105],
             jacket:[49,107,370,206], coat:[48,105,372,377], cap:[204,16,60,33], beanie:[200,0,68,48] }
 };
@@ -731,9 +737,18 @@ async function prepareAvatar(cfg) {
   const fig = figureId(cfg);
   const body = await loadImg(`assets/avatar/${fig}/body.png`);
   const layers = [];
-  for (const cat of LAYER_ORDER) {
+  // Plačios kelnės krenta ant batų, todėl jas piešiam po batų (siauros – atvirkščiai, kaip buvo)
+  const bottom = cfg.worn.bottom && byId(cfg.worn.bottom);
+  let order = LAYER_ORDER;
+  if (bottom && bottom.type === "widepants")
+    order = ["shoes", ...LAYER_ORDER.filter(c => c !== "shoes")];
+  for (const cat of order) {
     const item = cfg.worn[cat] && byId(cfg.worn[cat]);
-    if (item) layers.push(await coloredLayer(fig, item.type, item.color));
+    if (!item) continue;
+    // Po striuke ar paltu laisvi marškinėliai „susispaudžia“ – kitaip kyšotų pro šonus.
+    // Todėl tada piešiam įprastų marškinėlių sluoksnį.
+    const type = item.type === "oversize" && cfg.worn.outer ? "tshirt" : item.type;
+    layers.push(await coloredLayer(fig, type, item.color));
   }
   return { body, layers };
 }
@@ -1069,13 +1084,13 @@ function renderWornList() {
 // skip – kiek „verta“ striukės ar kepurės nedėti visai (kuo daugiau, tuo rečiau dedama).
 const OCCASIONS = {
   school: { name:"Mokykla / kasdien", intro:"Patogus derinys kiekvienai dienai.", style:"Kasdienis",
-            fit:{ tshirt:2, sweater:3, shirt:1, pants:3, skirt:2, shorts:1, sneakers:3, boots:2, jacket:2, coat:1, beanie:1, cap:1 },
+            fit:{ tshirt:2, oversize:3, sweater:3, shirt:1, pants:3, widepants:3, skirt:2, shorts:1, sneakers:3, boots:2, jacket:2, coat:1, beanie:1, cap:1 },
             skip:{ outer:1, hat:2 } },
   sport:  { name:"Sportas", intro:"Laisvi, judesių nevaržantys drabužiai.", style:"Sportinis",
-            fit:{ tshirt:3, sweater:2, shorts:3, pants:1, sneakers:3, cap:2 },
+            fit:{ tshirt:3, oversize:2, sweater:2, shorts:3, pants:1, widepants:1, sneakers:3, cap:2 },
             skip:{ outer:0, hat:1.5 } },
   party:  { name:"Šventė / išėjimas", intro:"Puošnesnis, tvarkingas derinys.", style:"Elegantiškas",
-            fit:{ shirt:3, sweater:1, tshirt:1, pants:3, skirt:3, boots:3, sneakers:1, coat:2, jacket:1 },
+            fit:{ shirt:3, sweater:1, tshirt:1, oversize:1, pants:3, widepants:2, skirt:3, boots:3, sneakers:1, coat:2, jacket:1 },
             skip:{ outer:1.5, hat:0 } }
 };
 let stylist = null;   // paskutinis pasiūlymas: { occasion, index, count, text, from }

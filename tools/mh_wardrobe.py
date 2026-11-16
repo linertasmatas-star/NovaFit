@@ -167,44 +167,7 @@ GARMENTS = {
     "boots":    (rule(leg=(0.74, 9)), 0.10),
     "cap":      (rule(head=EYE_Y + 0.55), 0.07),
     "beanie":   (rule(head=EYE_Y + 0.35), 0.11),
-    # Laisvi (oversize) marškinėliai: ilgesni, rankovės iki alkūnių; forma keičiama funkcijoje baggy()
-    "oversize": (rule(torso=(PELVIS_Y - 0.15, CREW), arm=(-1, 0.40), extra=CAP_CREW), 0.08),
 }
-
-def baggy(vs, wide=1.10, sleeve=0.22):
-    """Laisvas kirpimas: audinys nebekartoja kūno, o kabo kaip lygus „vamzdis“ nuo plačiausios vietos
-    (pečių į šonus, krūtinės į priekį, menčių į nugarą). Prie kaklo ir pečių lieka kūno forma.
-    Rankovės – platesnės nei ranka."""
-    v = vs.copy()
-    used = np.zeros(len(v), bool); used[USED] = True
-    t = (PART == "torso") & used
-    ys = np.arange(v[t, 1].min(), v[t, 1].max() + 0.12, 0.12)
-    k = np.clip(np.digitize(v[:, 1], ys) - 1, 0, len(ys) - 1)
-    at = lambda prof: np.interp(v[:, 1], ys + 0.06, prof)
-    blur = lambda p: np.convolve(np.pad(p, 3, mode="edge"), np.ones(7) / 7, mode="valid")
-    def profile(vals):      # didžiausia reikšmė kiekviename aukštyje
-        return np.array([vals[t & (k == i)].max() if (t & (k == i)).any() else 1e-3 for i in range(len(ys))])
-    hang = lambda prof: np.maximum.accumulate(prof[::-1])[::-1]   # nuo viršaus žemyn nebemažėja – audinys kabo
-    zc = blur(np.array([v[t & (k == i), 2].mean() if (t & (k == i)).any() else 0.0 for i in range(len(ys))]))
-    dz = v[:, 2] - at(zc)
-    top = v[t, 1].max()
-    ramp = np.clip((top - ys - 0.7) / 0.9, 0, 1)            # prie kaklo ir pečių nieko nekeičiam
-    px, pf, pb = profile(np.abs(v[:, 0])), profile(np.maximum(dz, 0)), profile(np.maximum(-dz, 0))
-    a_ = blur(hang(px) * (1 + (wide - 1) * ramp))            # pusė pločio
-    bf, bb = blur(hang(pf) * 1.05), blur(hang(pb) * 1.05)    # gylis į priekį / į nugarą
-    m = (PART == "torso") | ((PART == "leg") & (v[:, 1] > PELVIS_Y - 2.5))
-    r = at(ramp)
-    x_new = v[:, 0] * (1 + (np.clip(at(a_) / np.maximum(at(px), 1e-3), 1, 2.2) - 1) * r)
-    shape = (1 - np.clip(np.abs(x_new) / np.maximum(at(a_), 1e-3), 0, 1) ** 3) ** (1 / 3)   # suapvalintas stačiakampis
-    z_tube = at(zc) + np.where(dz > 0, at(bf), -at(bb)) * shape
-    v[m, 0] = x_new[m]
-    v[m, 2] = (v[:, 2] * (1 - r) + z_tube * r)[m]
-    v = smooth(v, 40, mask=m)
-    a = PART == "arm"
-    _, vn = normals(v)
-    v[a] += vn[a] * (sleeve * np.clip(POS[a] / 0.12, 0, 1))[:, None]   # nuo peties platėja palaipsniui
-    v = smooth(v, 6, mask=m | a)
-    return v
 
 # =====================================================================
 # 5. Piešimas
@@ -408,6 +371,149 @@ def _tip_zone():
 TIP_ZONE = _tip_zone()
 
 # =====================================================================
+# 5b. LAISVI DRABUŽIAI (oversize marškinėliai, plačios kelnės)
+# Jie nekartoja kūno, todėl ne „siuvami“ ant 3D kūno, o aprašomi kaip reljefas:
+#   kontūras (kur drabužis yra) + iškilumas kiekviename taške (kiek jis išsikišęs į priekį).
+# Šešėliai apskaičiuojami iš iškilumo nuolydžio – ta pati šviesa kaip ir kitiems drabužiams.
+# Matmenys imami iš figūros sąnarių ir silueto, todėl tinka visoms figūroms.
+# =====================================================================
+from scipy import ndimage as ndi
+_USED = np.zeros(len(base), bool); _USED[USED] = True
+
+def _grid(ctx):
+    """Kiekvieno paveikslėlio taško koordinatės decimetrais (x į dešinę, y į viršų)."""
+    xw = (np.arange(W)[None, :] - W / 2) / (PX * SS)
+    yw = ctx["ground"] + (H - 6 * SS - np.arange(H)[:, None]) / (PX * SS)
+    return xw + 0 * yw, yw + 0 * xw
+
+def _width_by_height(v, sel, yw_col):
+    """Silueto pločio pusė kiekvienam paveikslėlio aukščiui (eilutei)."""
+    ys = np.arange(v[sel, 1].min(), v[sel, 1].max() + 0.1, 0.1)
+    hw = np.array([np.abs(v[sel & (np.abs(v[:, 1] - y) < 0.1), 0]).max(initial=0.0) for y in ys])
+    hw = ndi.gaussian_filter1d(hw, 1.0)
+    return np.interp(yw_col, ys, hw, left=0.0, right=0.0), ys, hw
+
+def _limb(X, Y, a, b):
+    """Atstumas išilgai galūnės ašies (nuo a link b) ir statmenai jai."""
+    u = (b - a)[:2]; L = np.linalg.norm(u); u = u / L
+    dx, dy = X - a[0], Y - a[1]
+    return dx * u[0] + dy * u[1], np.abs(dx * u[1] - dy * u[0]), L
+
+def _limb_radius(v, a, b, part, p0, p1):
+    """Galūnės storis (spindulys) atkarpoje tarp padėčių p0..p1."""
+    m = _USED & (PART == part) & (POS > p0) & (POS < p1) & (np.sign(v[:, 0]) == np.sign(a[0]))
+    u = (b - a)[:2]; u = u / np.linalg.norm(u)
+    d = np.abs((v[m, 0] - a[0]) * u[1] - (v[m, 1] - a[1]) * u[0])
+    return float(np.percentile(d, 97))
+
+def _relief_image(z, mask):
+    """Iškilumas + kontūras → pilkas sluoksnis su šešėliais (kaip draw_layer)."""
+    z = ndi.gaussian_filter(np.where(mask, z, 0.0), 1.2 * SS)
+    gy, gx = np.gradient(z)
+    n = np.dstack([-gx * PX * SS, gy * PX * SS, np.ones_like(z)])
+    n /= np.linalg.norm(n, axis=2, keepdims=True)
+    shade = 0.42 + 0.58 * np.clip(n @ LIGHT, 0, None)
+    rgb = np.clip(CLOTH[None, None, :] * shade[:, :, None], 0, 255)
+    alpha = np.clip(ndi.gaussian_filter(mask.astype(float), 0.6 * SS) * 2 - 0.5, 0, 1) * 255
+    return Image.fromarray(np.dstack([rgb, alpha]).astype(np.uint8), "RGBA")
+
+def _round(t, power=3.0):
+    """Suapvalinto stačiakampio skerspjūvis: 1 viduryje, 0 krašte (t – 0..1 nuo vidurio)."""
+    return (1 - np.clip(t, 0, 1) ** power) ** (1 / power)
+
+def oversize_tee(v, ctx):
+    X, Y = _grid(ctx)
+    ax = np.abs(X)
+    neck, pel = J(v, "neck"), J(v, "pelvis")
+    torso = _USED & (PART == "torso")
+    # Pečių linija: aukščiausias kūno taškas kiekvienam atstumui nuo vidurio
+    sel = _USED & ((PART == "torso") | (PART == "arm"))
+    xs = np.arange(0, 5.0, 0.08)
+    top = np.array([v[sel & (np.abs(np.abs(v[:, 0]) - x) < 0.12), 1].max(initial=-99.0) for x in xs])
+    top_prof = ndi.gaussian_filter1d(top, 1.0)
+    top = np.interp(ax, xs, top_prof) + 0.10
+    sh = max(abs(J(v, "l-shoulder")[0]), abs(J(v, "r-shoulder")[0]))
+    # Pečių siūlė: tiesi nuožulni linija nuo kaklo iki peties galo
+    y_tip = np.interp(sh, xs, top_prof) + 0.10
+    slope = (neck[1] - 0.08) + (y_tip - (neck[1] - 0.08)) * np.clip((ax - 0.5) / (sh - 0.5), 0, 1.6)
+    crew = neck[1] - 0.08 - 0.42 * np.cos(np.clip(X / 0.62, -1, 1) * np.pi / 2) ** 0.8   # apvali iškirptė
+    top = np.minimum(np.minimum(top, slope), crew)
+    # Plotis: nuo plačiausios vietos audinys krenta tiesiai žemyn (ir dar truputį platėja)
+    hw, ys, prof = _width_by_height(v, torso, Y[:, 0])
+    hang = np.maximum.accumulate(prof[::-1])[::-1]                    # nuo viršaus žemyn nebemažėja
+    hem = pel[1] - 0.30
+    chest = J(v, "l-shoulder")[1] - 0.6
+    a = np.interp(Y[:, 0], ys, hang, left=hang[0], right=hang[-1])
+    a = np.maximum(a * 1.10 + 0.10, sh + 0.35) + 0.22 * np.clip((chest - Y[:, 0]) / (chest - hem), 0, 1)
+    a = ndi.gaussian_filter1d(a, 0.5 * PX * SS)[:, None] + 0 * X      # be laiptelių
+    body = (ax <= a) & (Y <= top) & (Y >= hem + 0.06 * (ax / a) ** 2)
+    depth = 0.62 * a
+    z = depth * _round(ax / a) * np.clip((top - Y) / 0.30, 0, 1) ** 0.5
+    # Apykaklės juostelė aplink iškirptę (šiek tiek iškilusi)
+    z = z + 0.05 * ((crew - Y > 0.02) & (crew - Y < 0.14) & (ax < 0.66))
+    # Klostės: ryškėja link apačios
+    low = np.clip((chest - Y) / (chest - hem), 0, 1)
+    z = z + 0.045 * low ** 1.5 * np.cos(X * 2 * np.pi / 0.95 + 0.6) + 0.03 * low * np.cos(X * 2 * np.pi / 2.3)
+    mask = body
+    # Rankovės: platūs vamzdžiai išilgai žasto, iki alkūnės
+    for side in ("l", "r"):
+        s_, e_ = J(v, f"{side}-shoulder"), J(v, f"{side}-elbow")
+        along, dist, L = _limb(X, Y, s_, e_)
+        r = _limb_radius(v, s_, e_, "arm", 0.08, 0.42) * 1.45 + 0.14 + 0.12 * np.clip(along / L, 0, 1)
+        sleeve = (along > -0.7) & (along < 0.82 * L) & (dist < r)
+        zs = -0.10 + 0.9 * np.sqrt(np.clip(r ** 2 - dist ** 2, 0, None))
+        z = np.where(sleeve & ~body, zs, np.where(sleeve, np.maximum(z, zs), z))
+        mask = mask | sleeve
+    mask &= Y <= np.maximum(top, crew - 99)          # virš pečių linijos nieko nėra
+    return _relief_image(z, mask)
+
+def wide_pants(v, ctx):
+    """Plačios kelnės: nuo klubų krenta tiesiai žemyn, klešnės plačios iki pat apačios."""
+    X, Y = _grid(ctx)
+    ax = np.abs(X)
+    rows = Y[:, 0]
+    pel = J(v, "pelvis")
+    waist = pel[1] + 0.62
+    lower = _USED & ((PART == "torso") | (PART == "leg"))
+    hem = max(J(v, "l-ankle")[1], J(v, "r-ankle")[1]) + 0.10
+    # Tikrasis kūno tarpkojis: žemiausias kūno taškas per vidurį
+    mid = lower & (np.abs(v[:, 0]) < 0.12) & (v[:, 1] > J(v, "l-knee")[1])
+    crotch_body = v[mid, 1].min()
+    crotch = crotch_body - 0.55                                          # kelnių tarpkojis žemiau – laisvas kirpimas
+    # Kūno kraštai kiekviename aukštyje: išorinis (klubai, kojos išorė) ir vidinis (kojos vidus)
+    ys = np.arange(hem - 0.2, waist + 0.2, 0.1)
+    band = lambda y: lower & (np.abs(v[:, 1] - y) < 0.1)
+    out = np.array([np.abs(v[band(y), 0]).max(initial=0.0) for y in ys])
+    inn = np.array([np.abs(v[band(y), 0]).min(initial=0.0) for y in ys])
+    body_out = out * 1.03 + 0.08
+    k_hip = int(np.argmax(np.where(ys > crotch_body - 0.2, out, 0)))        # plačiausia klubų vieta
+    low_max = body_out[ys < crotch_body - 1.2].max()                        # plačiausia kojos vieta žemiau šlaunų
+    line = body_out[k_hip] + (max(low_max + 0.22, body_out[k_hip] * 0.9) - body_out[k_hip]) \
+           * np.clip((ys[k_hip] - ys) / (ys[k_hip] - hem), 0, 1)            # nuo klubų – tiesi linija iki apačios
+    out = np.where(ys >= ys[k_hip], np.maximum.accumulate(body_out[::-1])[::-1], np.maximum(line, body_out))
+    # Vidinis klešnės kraštas: tiesi linija nuo tarpkojo iki apačios, bet visada dengia koją
+    t = np.clip((crotch - ys) / (crotch - hem), 0, 1)
+    inner = np.minimum(0.06 + (max(0.06, inn[:4].min() - 0.20) - 0.06) * t, inn - 0.08)
+    inner = np.where(ys > crotch, 0.0, np.maximum(inner, 0.06))
+    sm = lambda p: ndi.gaussian_filter1d(np.interp(rows, ys, p), 0.25 * PX * SS)
+    o_, i_ = sm(out)[:, None] + 0 * X, np.interp(rows, ys, inner)[:, None] + 0 * X
+    arch = crotch + 0.35 * (1 - np.clip(ax / 0.6, 0, 1) ** 2)             # tarpkojo lankas
+    mask = (Y <= waist) & (Y >= hem) & (ax <= o_) & ((ax >= i_) | (Y >= arch))
+    # Iškilumas: viršuje – vienas platus skerspjūvis, žemiau – dvi atskiros klešnės
+    c, w = (o_ + i_) / 2, np.maximum((o_ - i_) / 2, 1e-3)
+    z_leg = 0.85 * w * np.sqrt(np.clip(1 - ((ax - c) / w) ** 2, 0, None))
+    z_hip = 0.44 * o_ * _round(ax / o_)
+    blend = np.clip((Y - crotch) / 1.2, 0, 1)
+    blend = blend * blend * (3 - 2 * blend)                               # sklandus perėjimas ties tarpkoju
+    z = z_leg * (1 - blend) + z_hip * blend
+    z = z * np.clip((waist - Y) / 0.3, 0, 1) ** 0.5                       # juosmuo užapvalintas
+    low = np.clip((crotch + 1.0 - Y) / (crotch + 1.0 - hem), 0, 1)
+    z = z + 0.04 * low ** 1.3 * np.cos((ax - c) * 2 * np.pi / 0.8 + 1.0)  # išilginės klostės
+    return _relief_image(z, mask)
+
+SOFT = {"oversize": oversize_tee, "widepants": wide_pants}
+
+# =====================================================================
 # 6. Generavimas
 # =====================================================================
 WEIGHTS = (0.0, 0.25, 0.5, 0.75, 1.0)
@@ -433,7 +539,7 @@ for gname, gval in (("female", 0.0), ("male", 1.0)):
         # krūtinės srityje audinys „ištempiamas“ – be smulkių kūno detalių
         vs = smooth(vs, 40, mask=TIP_ZONE, taubin=False)
         for kind, (fsel, thick) in GARMENTS.items():
-            src = v if kind in ("cap", "beanie") else baggy(vs) if kind == "oversize" else vs
+            src = v if kind in ("cap", "beanie") else vs
             img, sx, sy = draw_layer(src, CLOTH, fsel=fsel, inflate=thick, ctx=ctx)
             pel = J(v, "pelvis")[1]
             knee = J(v, "l-knee")[1]
@@ -443,6 +549,8 @@ for gname, gval in (("female", 0.0), ("male", 1.0)):
                 img = add_flare(img, v, sx, sy, pel + 0.2, knee - 0.6, 0.5, CLOTH)
             img = details(img, kind, v, sx, sy)
             save(img, os.path.join(OUT, fig, f"{kind}.png"))
+        for kind, make in SOFT.items():
+            save(make(v, ctx), os.path.join(OUT, fig, f"{kind}.png"))   # v, ne vs: išlygintame kūne sąnarių taškai sugadinti
         meta["figures"][fig] = {"gender": gname, "mh_weight": w,
                                 "height_dm": float(v[USED, 1].max() - v[USED, 1].min())}
         print(fig, "ok")

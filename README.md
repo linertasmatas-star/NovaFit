@@ -5,7 +5,8 @@ Aprangos derinių kūrimo programėlė – Junior Achievement verslumo konkurso 
 ## Kaip paleisti
 Atsisiųskite visą repozitoriją (Code → Download ZIP), išskleiskite ir du kartus spustelėkite `index.html`. Aplankas `assets` turi būti šalia `index.html`. Nieko diegti nereikia.
 
-## Kas jau veikia (demo v6)
+## Kas jau veikia (demo v7)
+- Laisvo kirpimo drabužiai: laisvi (oversize) marškinėliai ir plačios kelnės – visoms 10 figūrų, kataloge ir kaip tipai įkeliant savo drabužį
 - Remiamos rekomendacijos: stilistas šalia derinio parodo vieną prekės ženklo drabužį su žyma „Remiama“ – galima pasimatuoti ant avataro ir „Žiūrėti parduotuvėje“. Prekės ženklas, kainos ir parduotuvė kol kas išgalvoti (demonstracinė imitacija)
 - Stilistas: pasirinkus progą (mokykla, sportas, šventė) derinys užsideda ant avataro – pirmiausia iš savo spintos, ko trūksta – iš katalogo; trumpas paaiškinimas ir „Kitas variantas“. Veikia pagal progos ir spalvų derinimo taisykles – tai ne dirbtinis intelektas (demonstracinė imitacija)
 - Titulinis ekranas; katalogo paveikslėliai iš tų pačių sluoksnių, kurie dedami ant avataro
@@ -25,3 +26,10 @@ Atsisiųskite visą repozitoriją (Code → Download ZIP), išskleiskite ir du k
 
 ## Avataro paveikslėliai
 `assets/avatar/<figūra>/` – `body.png` ir po vieną pilką sluoksnį kiekvienam drabužio tipui. Sugeneruota skriptu `tools/mh_wardrobe.py` iš MakeHuman (CC0) duomenų. Norint pridėti naują drabužio tipą, jį reikia aprašyti skripte ir sugeneruoti iš naujo.
+
+Kaip sugeneruoti iš naujo:
+1. Atsisiųsti MakeHuman duomenis: `github.com/makehumancommunity/mpfb2`, aplankas `src/mpfb/data` (reikia `3dobjs` ir `targets/macrodetails`).
+2. `python3 tools/mh_wardrobe.py <kelias iki src/mpfb/data> assets/avatar`
+3. `python3 tools/smooth_shoes.py` (batai be pirštų).
+
+Aptempti drabužiai „siuvami“ ant 3D kūno (`GARMENTS` sąrašas skripte). Laisvo kirpimo drabužiai (oversize marškinėliai, plačios kelnės) aprašomi kaip kontūras ir iškilumas (`SOFT` sąrašas, skiltis 5b).
