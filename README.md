@@ -5,7 +5,8 @@ Aprangos derinių kūrimo programėlė – Junior Achievement verslumo konkurso 
 ## Kaip paleisti
 Atsisiųskite visą repozitoriją (Code → Download ZIP), išskleiskite ir du kartus spustelėkite `index.html`. Aplankas `assets` turi būti šalia `index.html`. Nieko diegti nereikia.
 
-## Kas jau veikia (demo v5)
+## Kas jau veikia (demo v6)
+- Remiamos rekomendacijos: stilistas šalia derinio parodo vieną prekės ženklo drabužį su žyma „Remiama“ – galima pasimatuoti ant avataro ir „Žiūrėti parduotuvėje“. Prekės ženklas, kainos ir parduotuvė kol kas išgalvoti (demonstracinė imitacija)
 - Stilistas: pasirinkus progą (mokykla, sportas, šventė) derinys užsideda ant avataro – pirmiausia iš savo spintos, ko trūksta – iš katalogo; trumpas paaiškinimas ir „Kitas variantas“. Veikia pagal progos ir spalvų derinimo taisykles – tai ne dirbtinis intelektas (demonstracinė imitacija)
 - Titulinis ekranas; katalogo paveikslėliai iš tų pačių sluoksnių, kurie dedami ant avataro
 - Drabužių katalogas (15 pavyzdinių drabužių) su filtru pagal kategoriją

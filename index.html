@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NovaFit – demo v5</title>
+<title>NovaFit – demo v6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -45,7 +45,7 @@
   .chip:hover { color:var(--ink); border-color:#3a3257; }
   .chip.active { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border-color:transparent; box-shadow:0 0 18px var(--glow); }
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; }
-  .item { border:1px solid var(--line); background:#14111e; border-radius:16px; padding:7px; text-align:left; transition:.15s; }
+  .item { position:relative; border:1px solid var(--line); background:#14111e; border-radius:16px; padding:7px; text-align:left; transition:.15s; }
   .item:hover { border-color:#3a3257; transform:translateY(-1px); }
   .item.worn { border-color:var(--accent); background:#1b1530; box-shadow:0 0 0 1px var(--accent), 0 0 22px var(--glow); }
   .item canvas.thumb { width:100%; height:84px; display:block; border-radius:11px; object-fit:contain;
@@ -134,6 +134,20 @@
   .tag { margin-left:6px; padding:1px 7px; border-radius:999px; font-size:10px; font-style:normal; font-weight:600;
     letter-spacing:.3px; color:#c4b5fd; border:1px solid #4a3f73; vertical-align:middle; }
 
+  /* ===== REMIAMOS REKOMENDACIJOS ===== */
+  .ad { color:#fde68a; border-color:#8a6d1f; background:rgba(250,204,21,.08); }
+  .item .ad { position:absolute; top:12px; left:12px; margin:0; background:rgba(20,17,30,.85); }
+  .sponsor { display:grid; grid-template-columns:84px 1fr; gap:12px; align-items:start; margin-top:12px; padding:10px;
+    border:1px dashed #8a6d1f; border-radius:14px; background:rgba(250,204,21,.04); }
+  .sponsor canvas { width:84px; height:84px; border-radius:11px; object-fit:contain;
+    background:radial-gradient(circle at 50% 35%, #f3f1fb, #c9c3e0 90%); }
+  .sponsor b { display:block; margin:5px 0 1px; font-size:13px; }
+  .sponsor small { color:var(--muted); font-size:11px; }
+  .sponsor p { margin:5px 0 6px; font-size:12px; color:var(--muted); }
+  .sponsor .tag { margin-left:0; }
+  .sponsor .acts { display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; }
+  .sponsor .chip { color:var(--ink); border-color:#4a3f73; }
+
   /* ===== TITULINIS EKRANAS ===== */
   .intro { position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center;
     background:
@@ -206,14 +220,14 @@
     <p class="intro-tag">Susikurk derinį ir pasimatuok jį ant savo avataro
       <span>Tavo spinta, tavo deriniai – vienoje vietoje.</span></p>
     <button class="primary intro-go" id="introGo">Pradėti</button>
-    <p class="intro-note">demo v5</p>
+    <p class="intro-note">demo v6</p>
   </div>
 </div>
 
 <header>
   <h1 class="sr">NovaFit</h1>
   <button class="home" id="home" title="Į titulinį ekraną"><img class="logo" src="assets/logo.png" alt="NovaFit logotipas"></button>
-  <span>demo v5 – stilistas</span>
+  <span>demo v6</span>
 </header>
 
 <main>
@@ -335,7 +349,15 @@ const CATALOG = [
   { id:11, name:"Džinsinė striukė",     category:"outer",  type:"jacket",   color:"#5b7fa8", style:"Kasdienis" },
   { id:12, name:"Smėlinis paltas",      category:"outer",  type:"coat",     color:"#c19a6b", style:"Elegantiškas" },
   { id:13, name:"Juoda kepuraitė",      category:"hat",    type:"cap",      color:"#222222", style:"Sportinis" },
-  { id:14, name:"Žalia kepurė",         category:"hat",    type:"beanie",   color:"#4f7a5a", style:"Kasdienis" }
+  { id:14, name:"Žalia kepurė",         category:"hat",    type:"beanie",   color:"#4f7a5a", style:"Kasdienis" },
+
+  // REMIAMI drabužiai – taip NovaFit uždirbtų: prekės ženklas moka komisinį, kai vartotojas nueina į parduotuvę.
+  // DĖMESIO: prekės ženklas, kainos ir drabužiai čia IŠGALVOTI (demonstracija). Kai tikras ženklas sutiks –
+  // pakeisti brand, price ir pridėti url (parduotuvės nuorodą).
+  { id:101, name:"Alyvinis džemperis",      category:"top",    type:"sweater", color:"#b7a4e0", style:"Kasdienis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"39 €" },
+  { id:102, name:"Tamsiai žali marškiniai", category:"top",    type:"shirt",   color:"#2f5d4a", style:"Elegantiškas", sponsored:true, brand:"Pavyzdinis ženklas", price:"45 €" },
+  { id:103, name:"Mėtiniai marškinėliai",   category:"top",    type:"tshirt",  color:"#9ed8c3", style:"Sportinis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"19 €" },
+  { id:104, name:"Smėlinės kelnės",         category:"bottom", type:"pants",   color:"#cdb891", style:"Kasdienis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"49 €" }
 ];
 
 // Drabužių tipai, kuriuos mokam uždėti ant avataro (kiekvienam yra sluoksnio failas).
@@ -569,7 +591,8 @@ function renderCatalog() {
   $("catalog").innerHTML = items.map(i => `
     <button class="item ${state.worn[i.category] === i.id ? "worn" : ""}" data-item="${i.id}">
       <canvas class="thumb" width="236" height="168" data-thumbitem="${i.id}"></canvas>
-      <b>${i.name}</b><small>${CATEGORIES[i.category]} · ${i.style}</small>
+      ${i.sponsored ? `<em class="tag ad">Remiama</em>` : ""}
+      <b>${i.name}</b><small>${i.sponsored ? `${i.brand} · ${i.price}` : `${CATEGORIES[i.category]} · ${i.style}`}</small>
     </button>`).join("");
   // Miniatiūros piešiamos iš tų pačių sluoksnių, kurie uždedami ant avataro
   for (const i of items) {
@@ -1031,7 +1054,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && draft) clo
 function renderWornList() {
   const cats = Object.keys(CATEGORIES).filter(c => state.worn[c]);
   $("wornList").innerHTML = cats.length
-    ? cats.map(c => `<li><span>${CATEGORIES[c]}: <b>${esc(byId(state.worn[c]).name)}</b> ${isMine(state.worn[c]) ? `<em class="tag">mano</em>` : ""}</span>
+    ? cats.map(c => `<li><span>${CATEGORIES[c]}: <b>${esc(byId(state.worn[c]).name)}</b> ${isMine(state.worn[c]) ? `<em class="tag">mano</em>` : ""}${byId(state.worn[c]).sponsored ? `<em class="tag ad">remiama</em>` : ""}</span>
                      <button data-remove="${c}">nuimti</button></li>`).join("")
     : `<li class="empty">Paspausk drabužį kataloge, kad jį apvilktum.</li>`;
 }
@@ -1108,7 +1131,8 @@ function suggestOutfits(occasion) {
   for (const cat of Object.keys(CATEGORIES)) {
     const mine = wardrobe.filter(i => i.category === cat && fits(i));
     const good = mine.filter(i => rule.fit[i.type] >= 2);
-    options[cat] = good.length ? good : [...mine, ...CATALOG.filter(i => i.category === cat && fits(i))];
+    // Remiami drabužiai į patį derinį nepatenka – jie siūlomi atskirai, su aiškia žyma
+    options[cat] = good.length ? good : [...mine, ...CATALOG.filter(i => i.category === cat && fits(i) && !i.sponsored)];
     if (cat === "outer" || cat === "hat") options[cat] = [...options[cat], null];   // galima ir be jų
   }
   const results = [];
@@ -1159,7 +1183,26 @@ function applyStylist(occasion, index) {
                        : "Tavo spinta dar tuščia, todėl viskas iš katalogo. Įkelk savo drabužių – pirmiausia rinksiuosi juos.")
     : `Iš tavo spintos: ${list2(mine)}.` + (cat.length ? ` Iš katalogo pridėta: ${list2(cat)}.` : "");
   stylist = { occasion, index: index % list.length, count: list.length,
-              text: `${OCCASIONS[occasion].intro} ${esc(explainColors(pick.items))}`, from };
+              text: `${OCCASIONS[occasion].intro} ${esc(explainColors(pick.items))}`, from,
+              sponsor: pickSponsored(occasion, pick.items) };
+}
+
+// Remiama rekomendacija: vienas prekės ženklo drabužis, kuris tinka progai ir dera prie parinkto derinio.
+// Rodomas atskirai nuo derinio ir visada su žyma „Remiama“ – vartotojas turi matyti, kad tai reklama.
+function pickSponsored(occasion, outfit) {
+  const rule = OCCASIONS[occasion];
+  let best = null;
+  for (const item of CATALOG.filter(i => i.sponsored && rule.fit[i.type] >= 2)) {
+    const others = outfit.filter(o => o.category !== item.category);
+    const colors = others.reduce((sum, o) => sum + pairScore(item.color, o.color), 0) / Math.max(1, others.length);
+    // Pirmenybė vietoms, kur vartotojas savo drabužio neturi (ten derinį užpildė katalogas)
+    const own = outfit.some(o => o.category === item.category && isMine(o.id));
+    const score = rule.fit[item.type] + colors * 2 + (item.style === rule.style ? 0.5 : 0) + (own ? 0 : 2);
+    if (colors > 0 && (!best || score > best.score)) best = { item, score };   // siūlom tik jei spalvos tikrai dera
+  }
+  if (!best) return null;
+  const replaced = outfit.find(o => o.category === best.item.category);
+  return { id: best.item.id, prev: replaced ? replaced.id : null, tried: false, shop: false };
 }
 
 function renderStylist() {
@@ -1167,8 +1210,28 @@ function renderStylist() {
     `<button class="chip ${stylist && stylist.occasion === key ? "active" : ""}" data-occasion="${key}">${o.name}</button>`).join("");
   $("advice").hidden = !stylist;
   if (!stylist) return;
-  $("advice").innerHTML = `<p>${stylist.text}</p><p class="from">${stylist.from}</p>` +
+  let html = `<p>${stylist.text}</p><p class="from">${stylist.from}</p>` +
     (stylist.count > 1 ? `<button class="link" id="nextLook">Kitas variantas (${stylist.index + 1} iš ${stylist.count}) →</button>` : "");
+  const sp = stylist.sponsor, ad = sp && byId(sp.id);
+  if (ad) {
+    const prev = sp.prev && byId(sp.prev);
+    html += `<div class="sponsor">
+      <canvas width="168" height="168" id="adThumb"></canvas>
+      <div>
+        <em class="tag ad">Remiama</em>
+        <b>${ad.name}</b><small>${ad.brand} · ${ad.price}</small>
+        <p>${sp.tried ? "Pasimatuota ant tavo avataro." : `Derėtų prie šio derinio${prev ? ` vietoj „${esc(prev.name)}“` : ""}.`}</p>
+        <div class="acts">
+          ${sp.tried ? `<button class="chip" data-untry="${ad.id}">Grąžinti ankstesnį</button>`
+                     : `<button class="chip" data-try="${ad.id}">Pasimatuoti</button>`}
+          <button class="link" id="shopBtn">Žiūrėti parduotuvėje →</button>
+        </div>
+        ${sp.shop ? `<p>Demonstracija: tikroje versijoje čia atsidarytų parduotuvės puslapis, o NovaFit gautų komisinį.</p>` : ""}
+      </div>
+    </div>`;
+  }
+  $("advice").innerHTML = html;
+  if (ad) paintThumb($("adThumb"), ad).catch(err => console.error(err));
 }
 
 function render() {
@@ -1223,6 +1286,15 @@ document.addEventListener("click", e => {
   if (d.gender) state.gender = d.gender;
   // Greitas pasirinkimas: pagal dabartinį ūgį nustatom tipišką svorį
   if (d.shape) state.weight = clamp(Math.round(PRESET_BMI[d.shape] * (state.height / 100) ** 2), 40, 150);
+  // --- Remiama rekomendacija: pasimatuoti / grąžinti / parduotuvė ---
+  if (d.try || d.untry) {
+    const sp = stylist.sponsor, ad = byId(sp.id);
+    sp.tried = !!d.try;
+    if (sp.tried) state.worn[ad.category] = ad.id;
+    else if (sp.prev) state.worn[ad.category] = sp.prev;
+    else delete state.worn[ad.category];
+  }
+  if (el.id === "shopBtn") stylist.sponsor.shop = true;
   // --- Stilistas ---
   if (d.occasion) applyStylist(d.occasion, 0);
   else if (el.id === "nextLook") applyStylist(stylist.occasion, stylist.index + 1);
