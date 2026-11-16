@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NovaFit – demo v4</title>
+<title>NovaFit – demo v5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -115,6 +115,19 @@
   .sheet .actions { display:flex; justify-content:flex-end; align-items:center; gap:14px; margin-top:16px; }
   .sheet .link { font-size:13px; }
 
+  /* ===== STILISTAS ===== */
+  .stylist { margin:4px 0 14px; padding:12px 14px; border:1px solid #3a3257; border-radius:16px;
+    background:linear-gradient(135deg, rgba(139,92,246,.14), rgba(99,102,241,.06)); }
+  .stylist h2 { margin:0 0 4px; }
+  .stylist .hint { margin:0 0 10px; }
+  .stylist .chips { margin-bottom:0; }
+  .advice { margin:12px 0 0; padding-top:12px; border-top:1px solid #3a3257; font-size:13px; line-height:1.5; }
+  .advice p { margin:0 0 6px; }
+  .advice .from { color:var(--muted); font-size:12px; }
+  .advice .link { font-size:13px; }
+  .tag { margin-left:6px; padding:1px 7px; border-radius:999px; font-size:10px; font-style:normal; font-weight:600;
+    letter-spacing:.3px; color:#c4b5fd; border:1px solid #4a3f73; vertical-align:middle; }
+
   /* ===== TITULINIS EKRANAS ===== */
   .intro { position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center;
     background:
@@ -145,14 +158,14 @@
     <p class="intro-tag">Susikurk derinį ir pasimatuok jį ant savo avataro
       <span>Tavo spinta, tavo deriniai – vienoje vietoje.</span></p>
     <button class="primary intro-go" id="introGo">Pradėti</button>
-    <p class="intro-note">demo v4</p>
+    <p class="intro-note">demo v5</p>
   </div>
 </div>
 
 <header>
   <h1 class="sr">NovaFit</h1>
   <button class="home" id="home" title="Į titulinį ekraną"><img class="logo" src="assets/logo.png" alt="NovaFit logotipas"></button>
-  <span>demo v4 – mano spinta</span>
+  <span>demo v5 – stilistas</span>
 </header>
 
 <main>
@@ -188,6 +201,13 @@
     <p class="hint">Greitas pasirinkimas:</p>
     <div class="chips" id="shapes"></div>
     <p class="hint" id="bodyInfo"></p>
+    <!-- STILISTAS: pasirenki progą – derinys užsideda ant avataro -->
+    <div class="stylist">
+      <h2>Stilistas</h2>
+      <p class="hint">Kur ruošiesi? Parinksiu derinį – pirmiausia iš tavo spintos.</p>
+      <div class="chips" id="occasions"></div>
+      <div class="advice" id="advice" hidden></div>
+    </div>
     <div class="stage"><canvas id="avatar" width="620" height="800"></canvas></div>
     <div class="row">
       <h2 style="margin:10px 0 0">Dabartinis derinys</h2>
@@ -890,6 +910,7 @@ function saveItem() {
     return;
   }
   state.worn[item.category] = item.id;   // iškart parodom ant avataro
+  stylist = null;
   state.tab = "mine";
   outfits = outfits.map(o => ({ ...o, worn: cleanWorn(o.worn) }));
   closeItemForm();
@@ -942,12 +963,148 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && draft) clo
 function renderWornList() {
   const cats = Object.keys(CATEGORIES).filter(c => state.worn[c]);
   $("wornList").innerHTML = cats.length
-    ? cats.map(c => `<li><span>${CATEGORIES[c]}: <b>${esc(byId(state.worn[c]).name)}</b></span>
+    ? cats.map(c => `<li><span>${CATEGORIES[c]}: <b>${esc(byId(state.worn[c]).name)}</b> ${isMine(state.worn[c]) ? `<em class="tag">mano</em>` : ""}</span>
                      <button data-remove="${c}">nuimti</button></li>`).join("")
     : `<li class="empty">Paspausk drabužį kataloge, kad jį apvilktum.</li>`;
 }
 
+// =====================================================================
+// STILISTAS – derinio parinkimas pagal progą
+// Kas tikra: derinys tikrai parenkamas iš spintos ir katalogo pagal taisykles.
+// Kas imitacija: tai NE dirbtinis intelektas – tik progos ir spalvų derinimo
+// taisyklės, surašytos žemiau. Vėliau jas galima pakeisti tikru DI.
+// =====================================================================
+// Kiekvienai progai: kiek kuris drabužio tipas tinka (3 – labai, 1 – gali būti; nėra – netinka).
+// skip – kiek „verta“ striukės ar kepurės nedėti visai (kuo daugiau, tuo rečiau dedama).
+const OCCASIONS = {
+  school: { name:"Mokykla / kasdien", intro:"Patogus derinys kiekvienai dienai.", style:"Kasdienis",
+            fit:{ tshirt:2, sweater:3, shirt:1, pants:3, skirt:2, shorts:1, sneakers:3, boots:2, jacket:2, coat:1, beanie:1, cap:1 },
+            skip:{ outer:1, hat:2 } },
+  sport:  { name:"Sportas", intro:"Laisvi, judesių nevaržantys drabužiai.", style:"Sportinis",
+            fit:{ tshirt:3, sweater:2, shorts:3, pants:1, sneakers:3, cap:2 },
+            skip:{ outer:0, hat:1.5 } },
+  party:  { name:"Šventė / išėjimas", intro:"Puošnesnis, tvarkingas derinys.", style:"Elegantiškas",
+            fit:{ shirt:3, sweater:1, tshirt:1, pants:3, skirt:3, boots:3, sneakers:1, coat:2, jacket:1 },
+            skip:{ outer:1.5, hat:0 } }
+};
+let stylist = null;   // paskutinis pasiūlymas: { occasion, index, count, text, from }
+const isMine = id => wardrobe.some(i => i.id === id);
+
+// --- Spalvos ---
+function hsl(hex) {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (!d) return { h:0, s:0, l };
+  const sat = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: h * 60, s: sat, l };
+}
+// Neutralios – spalvos, kurios dera beveik su viskuo: juoda, balta, pilka, ruda/smėlinė, džinsinė mėlyna
+function isNeutral(hex) {
+  const { h, s, l } = hsl(hex);
+  if (s < 0.16 || l < 0.17 || l > 0.9) return true;
+  if (h >= 15 && h <= 55 && s < 0.55) return true;      // ruda, smėlinė
+  if (h >= 195 && h <= 235 && s < 0.45) return true;    // džinsinė
+  return false;
+}
+function colorName(hex) {
+  const { h, s, l } = hsl(hex);
+  if (l < 0.17) return "juoda";
+  if (s < 0.16) return l > 0.85 ? "balta" : "pilka";
+  if (l > 0.9) return "balta";
+  if (h >= 15 && h <= 55 && s < 0.55) return l > 0.6 ? "smėlinė" : "ruda";
+  if (h < 15 || h >= 345) return "raudona";
+  if (h < 40) return "oranžinė";
+  if (h < 65) return "geltona";
+  if (h < 165) return "žalia";
+  if (h < 195 || (h < 255 && l > 0.7)) return "žydra";
+  if (h < 255) return "mėlyna";
+  if (h < 290) return "violetinė";
+  return "rožinė";
+}
+const hueGap = (a, b) => { const d = Math.abs(hsl(a).h - hsl(b).h); return Math.min(d, 360 - d); };
+// Kaip dera dvi spalvos: neutrali dera su viskuo; ryškios – jei artimos arba priešingos spalvų rate
+function pairScore(a, b) {
+  if (isNeutral(a) || isNeutral(b)) return 1;
+  const gap = hueGap(a, b);
+  return gap < 35 ? 1.5 : (gap > 150 ? 1 : -2);
+}
+
+// Visi tinkami deriniai progai, nuo geriausio
+function suggestOutfits(occasion) {
+  const rule = OCCASIONS[occasion];
+  const fits = i => rule.fit[i.type] && !(i.type === "skirt" && state.gender === "male");
+  // Kiekvienai vietai: jei spintoje yra progai gerai tinkančių (2–3 balai) – renkamės tik iš jų.
+  // Jei savi tinka tik šiaip sau arba jų nėra – pridedam ir katalogą (savi vis tiek gauna pirmenybę).
+  const options = {};
+  for (const cat of Object.keys(CATEGORIES)) {
+    const mine = wardrobe.filter(i => i.category === cat && fits(i));
+    const good = mine.filter(i => rule.fit[i.type] >= 2);
+    options[cat] = good.length ? good : [...mine, ...CATALOG.filter(i => i.category === cat && fits(i))];
+    if (cat === "outer" || cat === "hat") options[cat] = [...options[cat], null];   // galima ir be jų
+  }
+  const results = [];
+  for (const top of options.top) for (const bottom of options.bottom) for (const shoes of options.shoes)
+  for (const outer of options.outer) for (const hat of options.hat) {
+    const items = [top, bottom, shoes, outer, hat].filter(Boolean);
+    let score = (outer ? 0 : rule.skip.outer) + (hat ? 0 : rule.skip.hat);
+    for (const i of items) score += rule.fit[i.type] + (i.style === rule.style ? 0.5 : 0) + (isMine(i.id) ? 1.5 : 0);
+    // Spalvų derėjimas – visų porų vidurkis (viršus + apačia sveria dvigubai)
+    let colors = 0, pairs = 0;
+    for (let a = 0; a < items.length; a++) for (let b = a + 1; b < items.length; b++) {
+      const w = a === 0 && b === 1 ? 2 : 1;
+      colors += pairScore(items[a].color, items[b].color) * w; pairs += w;
+    }
+    score += colors / pairs * 3;
+    const accents = new Set(items.filter(i => !isNeutral(i.color)).map(i => colorName(i.color)));
+    if (accents.size > 2) score -= 2;          // per daug ryškių spalvų
+    results.push({ items, score, core: `${top.id}-${bottom.id}-${shoes.id}` });
+  }
+  results.sort((a, b) => b.score - a.score);
+  // „Kitas variantas“ turi matomai skirtis – paliekam po vieną geriausią kiekvienam viršaus+apačios+batų trejetui
+  const seen = new Set();
+  return results.filter(r => !seen.has(r.core) && seen.add(r.core)).slice(0, 6);
+}
+
+// Trumpas paaiškinimas, kodėl derinys dera
+function explainColors(items) {
+  const bright = items.filter(i => !isNeutral(i.color));
+  const names = [...new Set(bright.map(i => colorName(i.color)))];
+  if (!bright.length) return "Neutralios spalvos – toks derinys dera visada.";
+  if (names.length === 1) return `Akcentas – ${names[0]} spalva (${bright.map(i => i.name.toLowerCase()).join(", ")}), visa kita neutralu.`;
+  const gap = hueGap(bright[0].color, bright.find(i => colorName(i.color) !== names[0]).color);
+  if (names.length === 2 && gap < 35) return `${names[0]} ir ${names[1]} – artimi atspalviai, todėl vaizdas ramus ir vientisas.`;
+  if (names.length === 2 && gap > 150) return `${names[0]} ir ${names[1]} – kontrastingos spalvos, kurios viena kitą pabrėžia.`;
+  return "Spalvų čia daugiau – drąsesnis variantas.";
+}
+
+function applyStylist(occasion, index) {
+  const list = suggestOutfits(occasion);
+  if (!list.length) { stylist = { occasion, index:0, count:0, text:"Šiai progai tinkamo derinio sudėti nepavyko.", from:"" }; return; }
+  const pick = list[index % list.length];
+  state.worn = {};
+  for (const i of pick.items) state.worn[i.category] = i.id;
+  const mine = pick.items.filter(i => isMine(i.id)), cat = pick.items.filter(i => !isMine(i.id));
+  const list2 = arr => arr.map(i => esc(i.name)).join(", ");
+  const from = !mine.length
+    ? (wardrobe.length ? "Tavo spintoje šiai progai tinkamų drabužių neradau – viskas iš katalogo."
+                       : "Tavo spinta dar tuščia, todėl viskas iš katalogo. Įkelk savo drabužių – pirmiausia rinksiuosi juos.")
+    : `Iš tavo spintos: ${list2(mine)}.` + (cat.length ? ` Iš katalogo pridėta: ${list2(cat)}.` : "");
+  stylist = { occasion, index: index % list.length, count: list.length,
+              text: `${OCCASIONS[occasion].intro} ${esc(explainColors(pick.items))}`, from };
+}
+
+function renderStylist() {
+  $("occasions").innerHTML = Object.entries(OCCASIONS).map(([key, o]) =>
+    `<button class="chip ${stylist && stylist.occasion === key ? "active" : ""}" data-occasion="${key}">${o.name}</button>`).join("");
+  $("advice").hidden = !stylist;
+  if (!stylist) return;
+  $("advice").innerHTML = `<p>${stylist.text}</p><p class="from">${stylist.from}</p>` +
+    (stylist.count > 1 ? `<button class="link" id="nextLook">Kitas variantas (${stylist.index + 1} iš ${stylist.count}) →</button>` : "");
+}
+
 function render() {
+  renderStylist();
   renderTabs(); renderFilters(); renderCatalog(); renderGenders(); renderShapes(); renderMeasures(); renderAvatar(); renderWornList();
   persist();   // atsimenam lytį, ūgį, svorį ir dabartinį derinį
 }
@@ -998,6 +1155,11 @@ document.addEventListener("click", e => {
   if (d.gender) state.gender = d.gender;
   // Greitas pasirinkimas: pagal dabartinį ūgį nustatom tipišką svorį
   if (d.shape) state.weight = clamp(Math.round(PRESET_BMI[d.shape] * (state.height / 100) ** 2), 40, 150);
+  // --- Stilistas ---
+  if (d.occasion) applyStylist(d.occasion, 0);
+  else if (el.id === "nextLook") applyStylist(stylist.occasion, stylist.index + 1);
+  // Jei derinį pakeitė pats vartotojas – stilisto paaiškinimas nebetinka, paslepiam
+  else if (d.item || d.remove || d.outfit || d.delitem || d.gender || el.id === "clearAll") stylist = null;
   if (d.item) {
     const item = byId(Number(d.item));
     // Paspaudus jau apvilktą drabužį – nuimam, kitaip – uždedam (pakeičiam seną)
