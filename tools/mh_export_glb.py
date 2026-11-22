@@ -235,9 +235,9 @@ GARMENTS = {
     "pants":     dict(f=rule(torso=(-99, WAIST_Y), leg=(-1, 0.97)), thick=0.06),
     "widepants": dict(f=rule(torso=(-99, WAIST_Y), leg=(-1, 0.99)), thick=0.1, flare=0.09, flareY=PELVIS_Y - 0.8, loose=True),
     "shorts":    dict(f=rule(torso=(-99, WAIST_Y), leg=(-1, 0.28)), thick=0.06),
-    "skirt":     dict(f=rule(torso=(PELVIS_Y - 0.05, WAIST_Y)), thick=0.13, bell=(PELVIS_Y + 0.45, None, 0.15, 0.16)),
+    "skirt":     dict(f=rule(torso=(PELVIS_Y + 0.52, WAIST_Y)), thick=0.13, bell=(PELVIS_Y + 0.45, None, 0.15, 0.16)),
     "jacket":    dict(f=rule(torso=(PELVIS_Y - 0.25, NECK_Y - 0.15), arm=(-1, 0.98), extra=np.minimum(JACKET_OPEN, CAP_NECK)), thick=0.15),
-    "coat":      dict(f=rule(torso=(PELVIS_Y - 0.25, NECK_Y - 0.1), arm=(-1, 0.98), extra=np.minimum(COAT_OPEN, CAP_NECK)), thick=0.18, bell=(PELVIS_Y + 0.3, "coat", 0.21, 0.08)),
+    "coat":      dict(f=rule(torso=(PELVIS_Y + 0.38, NECK_Y - 0.1), arm=(-1, 0.98), extra=np.minimum(COAT_OPEN, CAP_NECK)), thick=0.18, bell=(PELVIS_Y + 0.3, "coat", 0.21, 0.08)),
     "sneakers":  dict(f=rule(leg=(0.965, 9)), thick=0.13),
     "boots":     dict(f=rule(leg=(0.74, 9)), thick=0.10),
     "cap":       dict(f=rule(head=EYE_Y + 0.55), thick=0.07, head=True),
@@ -269,9 +269,9 @@ for _k in range(3):
     np.add.at(_vn, _t[:, _k], _fn)
 _vn /= np.linalg.norm(_vn, axis=1, keepdims=True) + 1e-12
 VN = np.zeros_like(F0); VN[USED] = _vn
-SMOOTH = _sm - F0
-_d = (SMOOTH * VN).sum(axis=1)
-SMOOTH -= np.minimum(_d, 0)[:, None] * VN
+# paliekam tik pakėlimą statmenai odai (be slinkimo į šonus) – tada audinys niekur nepalenda po kūnu
+_d = ((_sm - F0) * VN).sum(axis=1)
+SMOOTH = np.maximum(_d, 0)[:, None] * VN
 
 # ---------------------------------------------------------------------
 # Sijonas ir palto apačia: tikra „varpo“ forma (ne atskiros kojos).

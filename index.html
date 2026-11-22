@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16151B">
-<title>NovaFit – demo v8</title>
+<title>NovaFit – demo v9</title>
+<!-- 3D avatarui: three.js biblioteka projekte (assets/lib/three), kraunama tik įjungus 3D -->
+<script type="importmap">{ "imports": { "three": "./assets/lib/three/three.module.js", "three/addons/": "./assets/lib/three/addons/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -117,6 +119,11 @@
   .scene .pill { background:#fff; color:#16151B; font-size:13px; line-height:18px; font-weight:600; padding:6px 10px; border-radius:10px; }
   .scene .scene-btn { position:absolute; right:12px; top:12px; height:44px; padding:0 14px; border-radius:999px; border:0; background:#fff; color:#16151B; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; }
   .onb-scene { height:min(470px, 56vh); margin:16px -8px 0; padding-bottom:30px; }
+  .scene canvas.av3d { position:absolute; inset:0; width:100%; height:100%; max-width:none; touch-action:none; cursor:grab; }
+  .mode { position:absolute; right:12px; top:12px; z-index:2; display:grid; grid-auto-flow:column; gap:2px; padding:3px; border-radius:999px; background:#fff; }
+  .mode button { height:38px; min-width:48px; padding:0 12px; border:0; border-radius:999px; background:transparent; color:#5A5866; font-size:13px; font-weight:700; }
+  .mode button.active { background:#16151B; color:#fff; }
+  .scene .note { position:absolute; left:16px; right:16px; bottom:12px; margin:0; text-align:center; font-size:13px; line-height:18px; color:#5A5866; pointer-events:none; }
 
   /* ===== PAGRINDINIS EKRANAS ===== */
   .top { display:flex; align-items:center; justify-content:space-between; gap:12px; max-width:1140px; margin:0 auto; padding:12px 16px 8px; }
@@ -348,6 +355,12 @@
     <div class="word" id="bigWord" aria-hidden="true">NOVAFIT</div>
     <div class="pedestal"></div>
     <canvas id="avatar" width="620" height="800" role="img" aria-label="Avataras su dabartiniu deriniu"></canvas>
+    <canvas id="avatar3d" class="av3d" hidden role="img" aria-label="3D avataras – suk pirštu"></canvas>
+    <div class="mode" role="group" aria-label="Avataro vaizdas">
+      <button data-mode="2d" aria-pressed="true">2D</button>
+      <button data-mode="3d" aria-pressed="false">3D</button>
+    </div>
+    <p class="note" id="note3d" hidden></p>
     <p class="hint" id="bodyInfo" style="position:absolute;left:16px;bottom:8px;margin:0;color:#5A5866"></p>
   </section>
 
@@ -545,6 +558,7 @@ const state = {
   tint: {},         // spalvos peržiūra: { top: "#hex" } – kaip atrodytų kitos spalvos drabužis
   view: "look",     // apatinio meniu skiltis: "look" (derinys), "closet" (spinta), "saved" (deriniai)
   lastOccasion: null,
+  mode: "2d",       // avataro vaizdas: "2d" (paveikslėliai) arba "3d" (three.js)
   onboarded: false  // ar jau praėjo pradžios žingsnius
 };
 
@@ -949,6 +963,7 @@ function persist() {
                  arm: state.arm, waist: state.waist, hips: state.hips, onboarded: state.onboarded },
       current: state.worn,
       tint: state.tint,
+      mode: state.mode,
       outfits
     }));
     return true;
@@ -984,6 +999,7 @@ function restore() {
   state.onboarded = !!p.onboarded;
   state.worn = cleanWorn(data.current);
   state.tint = cleanTint(data.tint);
+  if (data.mode === "3d") state.mode = "3d";
   outfits = Array.isArray(data.outfits) ? data.outfits.map(o => ({ ...o, worn: cleanWorn(o.worn), tint: cleanTint(o.tint) })) : [];
 }
 const cleanTint = t => {
@@ -1429,10 +1445,46 @@ function renderView() {
   $("bigWord").textContent = occ ? OCCASIONS[occ].word : "NOVAFIT";
 }
 
+// ===================== 3D AVATARAS =====================
+// Kraunamas tik įjungus 3D (failai ~3 MB + biblioteka). Jei naršyklė 3D nepalaiko – grįžtam į 2D.
+let av3d = null, av3dLoading = null;
+function note3d(text) { $("note3d").hidden = !text; $("note3d").textContent = text || ""; }
+async function ensure3d() {
+  if (av3d) return av3d;
+  if (!av3dLoading) {
+    note3d("Kraunamas 3D avataras…");
+    av3dLoading = import("./assets/avatar3d.js")
+      .then(m => m.createAvatar3D($("avatar3d")))
+      .then(a => { av3d = a; note3d("Suk avatarą pirštu"); setTimeout(() => { if (state.mode === "3d") note3d(""); }, 3500); return a; })
+      .catch(err => { console.error(err); av3dLoading = null; state.mode = "2d"; renderMode(); persist();
+                      note3d(""); $("bodyInfo").textContent = "3D šiame įrenginyje neveikia – rodomas 2D avataras."; return null; });
+  }
+  return av3dLoading;
+}
+function update3d() {
+  if (state.mode !== "3d" || !av3d) return;
+  av3d.setBody({ gender: state.gender, height: state.height, weight: state.weight, waist: state.waist, hips: state.hips, arm: state.arm });
+  av3d.setOutfit(Object.entries(state.worn).map(([cat, id]) => {
+    const it = byId(id);
+    return it && { type: it.type, color: state.tint[cat] || it.color };
+  }).filter(Boolean));
+}
+function renderMode() {
+  const is3d = state.mode === "3d";
+  $("avatar").hidden = is3d;
+  $("avatar3d").hidden = !is3d;
+  document.querySelectorAll(".mode button").forEach(b => {
+    const on = b.dataset.mode === state.mode;
+    b.classList.toggle("active", on); b.setAttribute("aria-pressed", on);
+  });
+  if (av3d) av3d.pause(!is3d);
+  if (is3d) ensure3d().then(update3d); else note3d("");
+}
+
 function render() {
   renderStylist();
   renderTabs(); renderFilters(); renderCatalog(); renderGenders(); renderMeasures(); renderAvatar(); renderWornList();
-  renderSwatches(); renderView();
+  renderSwatches(); renderView(); renderMode(); update3d();
   persist();   // atsimenam matmenis ir dabartinį derinį
 }
 
@@ -1514,6 +1566,8 @@ document.addEventListener("click", e => {
     renderMeasures(); persist(); return;
   }
   if (d.gender && !$("onb").hidden) { state.gender = d.gender; renderGenders(); renderMeasureSummary(); persist(); return; }
+  // --- 2D / 3D ---
+  if (d.mode) { state.mode = d.mode; renderMode(); persist(); return; }
   // --- Apatinis meniu ---
   if (d.view) { state.view = d.view; renderView(); window.scrollTo({ top: 0 }); return; }
   if (el.id === "suggest") {
