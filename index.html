@@ -97,11 +97,12 @@
   .foot-links .link:first-child { color:var(--muted); }
 
   .rows { background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:4px 12px 4px 16px; }
-  .mrow { min-height:60px; display:flex; align-items:center; justify-content:space-between; gap:8px; border-bottom:1px solid var(--line); }
+  .mrow { min-height:60px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0 8px; padding:6px 0 10px; border-bottom:1px solid var(--line); }
+  .mrow .slide { flex-basis:100%; width:100%; height:28px; margin:2px 0 0; accent-color:var(--accent); cursor:pointer; }
   .mrow:last-child { border-bottom:0; }
   .mrow > span { font-size:15px; font-weight:600; }
   .stepper { display:flex; align-items:center; gap:6px; }
-  .stepper input { width:64px; height:44px; text-align:center; border:0; border-radius:10px; background:transparent; font-family:"Space Grotesk", sans-serif; font-weight:600; font-size:20px; -moz-appearance:textfield; }
+  .stepper input { width:72px; height:44px; text-align:center; border:1px solid var(--line); border-radius:12px; background:var(--surface-2); font-family:"Space Grotesk", sans-serif; font-weight:600; font-size:20px; -moz-appearance:textfield; }
   .stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
   .stepper input:focus { outline:2px solid var(--accent-text); }
   .stepper small { font-size:13px; color:var(--muted); width:20px; }
@@ -791,17 +792,24 @@ const MEASURES = { height:[140, 210, "cm", "Ūgis"], weight:[40, 150, "kg", "Svo
 function renderMeasureSummary() {
   $("measureSummary").textContent = `${state.gender === "female" ? "Moteris" : "Vyras"} · ${state.height} cm`;
 }
+// Visi to matmens laukeliai (skaičius ir skalė) rodo tą pačią reikšmę – išskyrus tą, kurį žmogus dabar keičia
+function syncMeasure(f, except) {
+  document.querySelectorAll(`[data-measure="${f}"]`).forEach(inp => { if (inp !== except) inp.value = state[f]; });
+}
 // Pradžios „Matmenys“ žingsnis: − / skaičius / + kiekvienam matmeniui
 function renderMeasures() {
   document.querySelectorAll(".stepper").forEach(el => {
     const f = el.dataset.field, [min, max, unit, name] = MEASURES[f];
     const input = el.querySelector("input");
-    if (input) {   // laukelis jau yra – tik atnaujinam skaičių (bet ne tada, kai žmogus jame rašo)
-      if (document.activeElement !== input) input.value = state[f];
+    if (input) {   // laukeliai jau yra – tik atnaujinam skaičius (bet ne tą, kuriame žmogus dabar rašo)
+      syncMeasure(f, document.activeElement);
       return;
     }
+    // Slenkama skalė – po eilute, per visą plotį
+    el.parentElement.insertAdjacentHTML("beforeend",
+      `<input class="slide" type="range" min="${min}" max="${max}" step="1" value="${state[f]}" data-measure="${f}" aria-label="${name}, ${unit}">`);
     el.innerHTML = `<button class="icon-btn" data-step-field="${f}" data-delta="-1" aria-label="${name}: mažiau">${ICON.minus}</button>
-      <input type="number" inputmode="numeric" min="${min}" max="${max}" value="${state[f]}" data-measure="${f}" aria-labelledby="lbl${f[0].toUpperCase() + f.slice(1)}">
+      <input type="number" inputmode="numeric" enterkeyhint="done" min="${min}" max="${max}" value="${state[f]}" data-measure="${f}" aria-labelledby="lbl${f[0].toUpperCase() + f.slice(1)}">
       <small>${unit}</small>
       <button class="icon-btn" data-step-field="${f}" data-delta="1" aria-label="${name}: daugiau">${ICON.plus}</button>`;
   });
@@ -1459,10 +1467,15 @@ document.addEventListener("input", e => {
   const v = Number(e.target.value);
   if (!v) return;                       // laukelis tuščias – laukiam, kol įves
   state[f] = clamp(Math.round(v), MEASURES[f][0], MEASURES[f][1]);
+  syncMeasure(f, e.target);
   renderMeasureSummary(); persist();
 });
 // Išėjus iš laukelio – parodom pataisytą skaičių (pvz. 300 → 210)
-document.addEventListener("change", e => { if (e.target.dataset && e.target.dataset.measure) { e.target.blur(); renderMeasures(); } });
+document.addEventListener("change", e => {
+  if (e.target.dataset && e.target.dataset.measure && e.target.type === "number") { e.target.blur(); renderMeasures(); }
+});
+// Enter skaičiaus laukelyje – baigta įvesti
+document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.dataset && e.target.dataset.measure) e.target.blur(); });
 $("pwToggle").addEventListener("click", () => {
   const pw = $("accPw"), show = pw.type === "password";
   pw.type = show ? "text" : "password";
