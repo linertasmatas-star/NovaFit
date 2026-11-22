@@ -186,16 +186,29 @@ Y = base[:, 1]
 PELVIS_Y, NECK_Y = J(base, "pelvis")[1], J(base, "neck")[1]
 OUTSIDE = -0.4
 
-def rule(torso=None, leg=None):
+X, Z = base[:, 0], base[:, 2]
+EYE_Y = J(base, "l-eye")[1]
+WAIST_Y = PELVIS_Y + 0.62
+FRONT = Z > 0.2
+
+def rule(torso=None, arm=None, leg=None, head=None, extra=None):
     """Reikšmė kiekvienam taškui: > 0 – srities viduje (decimetrais). Naršyklė ją tolygiai
-    interpoliuoja tarp taškų ir kerpa ties 0 – todėl kraštai tiesūs, ne laiptuoti."""
+    interpoliuoja tarp taškų ir kerpa ties 0 – todėl kraštai tiesūs, ne laiptuoti.
+    Tos pačios taisyklės kaip mh_wardrobe.py (2D sluoksniams)."""
     f = np.full(len(base), OUTSIDE)
     if torso:
+        y0, y1 = torso
         m = PART == "torso"
-        f[m] = np.minimum(Y[m] - torso[0], torso[1] - Y[m])
-    if leg:
-        m = PART == "leg"
-        f[m] = np.maximum(f[m], np.minimum(POS[m] - leg[0], leg[1] - POS[m]) * 9.0)
+        f[m] = np.minimum(Y[m] - y0, (y1[m] if isinstance(y1, np.ndarray) else y1) - Y[m])
+    for name, rng, k in (("arm", arm, 7.0), ("leg", leg, 9.0)):
+        if rng:
+            m = PART == name
+            f[m] = np.maximum(f[m], np.minimum(POS[m] - rng[0], rng[1] - POS[m]) * k)
+    if head is not None:
+        m = PART == "head"
+        f[m] = Y[m] - head
+    if extra is not None:
+        f = np.minimum(f, extra)
     return f
 
 L = NECK_Y - PELVIS_Y
@@ -203,6 +216,99 @@ SHORTS = rule(torso=(-99, PELVIS_Y + 0.12 * L), leg=(-1, 0.26))
 BRA = rule(torso=(PELVIS_Y + 0.47 * L, PELVIS_Y + 0.9 * L))
 UNDER_F = np.maximum(SHORTS, BRA).astype(np.float32)   # moteriai: šortukai + palaidinukė
 UNDER_M = SHORTS.astype(np.float32)                    # vyrui: tik šortukai
+
+# ---------------------------------------------------------------------
+# Drabužiai: ta pati kūno geometrija, tik atitraukta nuo odos (storis) ir apkirpta pagal lauką.
+# thick – storis dm; flare/flareY – kiek papildomai platėja žemyn nuo flareY (dm per dm).
+# ---------------------------------------------------------------------
+CREW = NECK_Y - 0.08 - 0.55 * np.exp(-(X / 0.5) ** 2) * FRONT
+COLLAR = NECK_Y - 0.15 - 0.15 * np.exp(-(X / 0.4) ** 2) * FRONT
+JACKET_OPEN = np.where(FRONT & (PART == "torso"), np.abs(X) - 0.18, 9)
+COAT_OPEN = np.where(FRONT & (PART == "torso") & (Y > PELVIS_Y + 0.6), np.abs(X) - 0.18, 9)
+CAP_CREW, CAP_COLLAR, CAP_NECK = CREW - Y, COLLAR - Y, NECK_Y - 0.12 - Y
+KNEE_Y = J(base, "l-knee")[1]
+GARMENTS = {
+    "tshirt":    dict(f=rule(torso=(PELVIS_Y + 0.25, CREW), arm=(-1, 0.2), extra=CAP_CREW), thick=0.05),
+    "oversize":  dict(f=rule(torso=(PELVIS_Y - 0.1, CREW), arm=(-1, 0.33), extra=CAP_CREW), thick=0.2, loose=True),
+    "sweater":   dict(f=rule(torso=(PELVIS_Y + 0.15, CREW), arm=(-1, 0.96), extra=CAP_CREW), thick=0.08),
+    "shirt":     dict(f=rule(torso=(PELVIS_Y + 0.2, COLLAR), arm=(-1, 0.95), extra=CAP_COLLAR), thick=0.05),
+    "pants":     dict(f=rule(torso=(-99, WAIST_Y), leg=(-1, 0.97)), thick=0.06),
+    "widepants": dict(f=rule(torso=(-99, WAIST_Y), leg=(-1, 0.99)), thick=0.1, flare=0.09, flareY=PELVIS_Y - 0.8, loose=True),
+    "shorts":    dict(f=rule(torso=(-99, WAIST_Y), leg=(-1, 0.28)), thick=0.06),
+    "skirt":     dict(f=rule(torso=(PELVIS_Y - 0.05, WAIST_Y)), thick=0.13, bell=(PELVIS_Y + 0.45, None, 0.15, 0.16)),
+    "jacket":    dict(f=rule(torso=(PELVIS_Y - 0.25, NECK_Y - 0.15), arm=(-1, 0.98), extra=np.minimum(JACKET_OPEN, CAP_NECK)), thick=0.15),
+    "coat":      dict(f=rule(torso=(PELVIS_Y - 0.25, NECK_Y - 0.1), arm=(-1, 0.98), extra=np.minimum(COAT_OPEN, CAP_NECK)), thick=0.18, bell=(PELVIS_Y + 0.3, "coat", 0.21, 0.08)),
+    "sneakers":  dict(f=rule(leg=(0.965, 9)), thick=0.13),
+    "boots":     dict(f=rule(leg=(0.74, 9)), thick=0.10),
+    "cap":       dict(f=rule(head=EYE_Y + 0.55), thick=0.07, head=True),
+    "beanie":    dict(f=rule(head=EYE_Y + 0.35), thick=0.11, head=True),
+}
+
+# Audinys nesilanksto pagal kiekvieną kūno smulkmeną: išlyginto kūno poslinkis (bazinei figūrai)
+_e = np.concatenate([quads[:, [k, (k + 1) % 4]] for k in range(4)])
+_e = np.unique(np.sort(_e[_e[:, 0] != _e[:, 1]], axis=1), axis=0)
+def smooth(v, iters, mask, lam=0.5, taubin=True):
+    v = v.copy(); deg = np.zeros(len(v))
+    np.add.at(deg, _e[:, 0], 1); np.add.at(deg, _e[:, 1], 1); deg[deg == 0] = 1
+    for it in range(iters * 2):
+        step = lam if (it % 2 == 0 or not taubin) else -(lam + 0.03)   # Taubin: kūnas nesusitraukia
+        acc = np.zeros_like(v)
+        np.add.at(acc, _e[:, 0], v[_e[:, 1]]); np.add.at(acc, _e[:, 1], v[_e[:, 0]])
+        d = acc / deg[:, None] - v; d[~mask] = 0
+        v += step * d
+    return v
+_sm = smooth(F0, 30, PART != "head")
+# krūtinės ir tarpkojo smulkmenų po audiniu nesimato (kaip 2D versijoje)
+_sm = smooth(_sm, 30, (PART == "torso") & (Y > PELVIS_Y + 1.3) & (Y < NECK_Y - 0.4) & (Z > 0.0), lam=0.5, taubin=False)
+_sm = smooth(_sm, 20, (PART != "head") & (PART != "arm") & (np.abs(Y - PELVIS_Y + 0.25) < 0.55) & (np.abs(X) < 0.7), lam=0.5, taubin=False)
+# Audinys gali tik pakilti nuo odos (užpildyti įdubas), bet niekada nelįsti į kūno vidų
+_p, _t = F0[USED], remap[tris]
+_fn = np.cross(_p[_t[:, 1]] - _p[_t[:, 0]], _p[_t[:, 2]] - _p[_t[:, 0]])
+_vn = np.zeros_like(_p)
+for _k in range(3):
+    np.add.at(_vn, _t[:, _k], _fn)
+_vn /= np.linalg.norm(_vn, axis=1, keepdims=True) + 1e-12
+VN = np.zeros_like(F0); VN[USED] = _vn
+SMOOTH = _sm - F0
+_d = (SMOOTH * VN).sum(axis=1)
+SMOOTH -= np.minimum(_d, 0)[:, None] * VN
+
+# ---------------------------------------------------------------------
+# Sijonas ir palto apačia: tikra „varpo“ forma (ne atskiros kojos).
+# Kiekvienam aukščiui – kūno pjūvio kontūras (be rankų), pastumtas į išorę ir platėjantis žemyn.
+# Forma skaičiuojama kiekvienai kūno formai atskirai, todėl keičiasi kartu su figūra.
+# ---------------------------------------------------------------------
+SEG, RINGS = 48, 16
+ANG = np.linspace(0, 2 * np.pi, SEG, endpoint=False)
+DIRS = np.stack([np.sin(ANG), np.cos(ANG)], 1)          # (x, z) kryptys
+NOARM = np.isin(np.arange(len(base)), USED) & (PART != "arm") & (PART != "head")
+def bell(v, y_top, kind, thick, flare):
+    pel, knee = J(v, "pelvis")[1], J(v, "l-knee")[1]
+    y_bot = knee - 0.15 if kind != "coat" else knee - 0.9
+    ys = np.linspace(y_top, y_bot, RINGS)
+    zc = v[NOARM & (np.abs(v[:, 1] - pel) < 0.3), 2].mean()
+    rings, prev, widest = [], None, None
+    for y in ys:
+        m = NOARM & (np.abs(v[:, 1] - y) < 0.06)
+        pts = v[m][:, [0, 2]] - [0, zc]
+        h = (pts @ DIRS.T).max(axis=0) if len(pts) else prev       # atstumas iki kontūro kiekviena kryptimi
+        if prev is not None and y < pel:
+            h = np.maximum(h, prev)                                  # žemiau klubų – nesiaurėja (nekrenta tarp kojų)
+        if widest is None and y < pel - 0.3:
+            widest = y
+        prev = h
+        extra = thick + (flare * (widest - y) if widest is not None else 0)
+        r = h + extra
+        rings.append(np.stack([DIRS[:, 0] * r, np.full(SEG, y), DIRS[:, 1] * r + zc], 1))
+    return np.concatenate(rings)
+BELL_FACES = []
+for r in range(RINGS - 1):
+    for k in range(SEG):
+        a, b = r * SEG + k, r * SEG + (k + 1) % SEG
+        c, d = a + SEG, b + SEG
+        BELL_FACES += [(a, c, b), (b, c, d)]
+BELL_FACES = np.array(BELL_FACES, np.uint16)
+
 
 # ---------------------------------------------------------------------
 # 4. .glb rašymas (be papildomų bibliotekų)
@@ -250,15 +356,46 @@ UF = add(UNDER_F[USED].reshape(-1, 1)[:, 0].copy(), 5126, "SCALAR", 34962)
 UM = add(UNDER_M[USED].reshape(-1, 1)[:, 0].copy(), 5126, "SCALAR", 34962)
 # Vienas kūnas; apatinių sritis – papildomi taškų laukai _UNDERF (moteriai) ir _UNDERM (vyrui).
 # Naršyklė juos nuspalvina juodai ten, kur laukas > 0.
-prims = [{"attributes": {"POSITION": POS, "NORMAL": NRM, "_UNDERF": UF, "_UNDERM": UM},
+# Drabužių laukai: int8 (−1…1 atitinka −0.4…0.4 dm) – failas lieka mažas
+def field8(f):
+    q = np.clip(np.round(f[USED] / 0.4 * 127), -127, 127).astype(np.int8)
+    a = add(q, 5120, "SCALAR", 34962); accessors[a]["normalized"] = True
+    return a
+gattrs = {f"_G_{name.upper()}": field8(g["f"]) for name, g in GARMENTS.items()}
+SM = add((SMOOTH[USED] * S).astype(np.float32), 5126, "VEC3", 34962)
+prims = [{"attributes": {"POSITION": POS, "NORMAL": NRM, "_UNDERF": UF, "_UNDERM": UM, "_SMOOTH": SM, **gattrs},
           "indices": IDX, "material": 0, "targets": targets}]
 extra = {"targetNames": names}
 
+# Varpo formos: bazė + tie patys formų pavadinimai (kiekvienai formai – perskaičiuota forma)
+MORPH_BASE = {n: (M0 if n.startswith("m-") else F0) for n in MORPHS}
+bell_meshes = []
+for gname, g in GARMENTS.items():
+    if "bell" not in g:
+        continue
+    y_top, kind, thick, flare = g["bell"]
+    b0 = bell(F0, y_top, kind, thick, flare)
+    bp = add(((b0 - [0, ground, 0]) * S).astype(np.float32), 5126, "VEC3", 34962, True)
+    bt = []
+    for n in names:
+        mb = MORPH_BASE[n]
+        delta = bell(mb + MORPHS[n], y_top, kind, thick, flare) - bell(mb, y_top, kind, thick, flare)
+        bt.append({"POSITION": add((delta * S).astype(np.float32), 5126, "VEC3", 34962, True)})
+    bi = add(BELL_FACES.reshape(-1), 5123, "SCALAR", 34963)
+    fn = np.cross(b0[BELL_FACES[:, 1]] - b0[BELL_FACES[:, 0]], b0[BELL_FACES[:, 2]] - b0[BELL_FACES[:, 0]])
+    bn = np.zeros_like(b0)
+    for k in range(3):
+        np.add.at(bn, BELL_FACES[:, k], fn)
+    bn = -bn / (np.linalg.norm(bn, axis=1, keepdims=True) + 1e-12)      # į išorę
+    bnn = add(bn.astype(np.float32), 5126, "VEC3", 34962)
+    bell_meshes.append({"name": "bell-" + gname, "primitives": [{"attributes": {"POSITION": bp, "NORMAL": bnn}, "indices": bi, "material": 0, "targets": bt}],
+                        "weights": [0.0] * len(names), "extras": {"targetNames": names}})
+
 gltf = {
     "asset": {"version": "2.0", "generator": "NovaFit mh_export_glb.py (MakeHuman CC0)"},
-    "scene": 0, "scenes": [{"nodes": [0]}],
-    "nodes": [{"mesh": 0, "name": "avatar"}],
-    "meshes": [{"name": "body", "primitives": prims, "weights": [0.0] * len(names), "extras": extra}],
+    "scene": 0, "scenes": [{"nodes": list(range(1 + sum(1 for g in GARMENTS.values() if "bell" in g)))}],
+    "nodes": [{"mesh": 0, "name": "avatar"}] + [{"mesh": i + 1, "name": m["name"]} for i, m in enumerate(bell_meshes)],
+    "meshes": [{"name": "body", "primitives": prims, "weights": [0.0] * len(names), "extras": extra}] + bell_meshes,
     "materials": [
         {"name": "skin", "pbrMetallicRoughness": {"baseColorFactor": [0.886, 0.839, 0.784, 1], "metallicFactor": 0, "roughnessFactor": 0.75}},
     ],
@@ -273,6 +410,10 @@ glb += struct.pack("<II", len(js), 0x4E4F534A) + js + struct.pack("<II", len(bin
 open(os.path.join(OUT, "body.glb"), "wb").write(glb)
 
 info["targetNames"] = names
+info["garments"] = {name: {"thick": round(g["thick"] * S, 4), "flare": g.get("flare", 0.0),
+                           "flareY": round((g.get("flareY", 0.0) - ground) * S, 4), "loose": g.get("loose", False), "bell": "bell" in g,
+                           "smooth": not g.get("head", False)}
+                    for name, g in GARMENTS.items()}
 info["groundOffsetM"] = 0.0
 json.dump(info, open(os.path.join(OUT, "body.json"), "w"), indent=1, ensure_ascii=False)
 print(f"body.glb: {len(glb) / 1e6:.2f} MB, taškų {len(USED)}, trikampių {len(tris)}, formų {len(names)}")

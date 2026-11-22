@@ -342,5 +342,119 @@
   "lowerarm-",
   "lowerarm+"
  ],
+ "garments": {
+  "tshirt": {
+   "thick": 0.005,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": false,
+   "smooth": true
+  },
+  "oversize": {
+   "thick": 0.02,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": true,
+   "bell": false,
+   "smooth": true
+  },
+  "sweater": {
+   "thick": 0.008,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": false,
+   "smooth": true
+  },
+  "shirt": {
+   "thick": 0.005,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": false,
+   "smooth": true
+  },
+  "pants": {
+   "thick": 0.006,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": false,
+   "smooth": true
+  },
+  "widepants": {
+   "thick": 0.01,
+   "flare": 0.09,
+   "flareY": 0.811,
+   "loose": true,
+   "bell": false,
+   "smooth": true
+  },
+  "shorts": {
+   "thick": 0.006,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": false,
+   "smooth": true
+  },
+  "skirt": {
+   "thick": 0.013,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": true,
+   "smooth": true
+  },
+  "jacket": {
+   "thick": 0.015,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": false,
+   "smooth": true
+  },
+  "coat": {
+   "thick": 0.018,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": true,
+   "smooth": true
+  },
+  "sneakers": {
+   "thick": 0.013,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": false,
+   "smooth": true
+  },
+  "boots": {
+   "thick": 0.01,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": false,
+   "smooth": true
+  },
+  "cap": {
+   "thick": 0.007,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": false,
+   "smooth": false
+  },
+  "beanie": {
+   "thick": 0.011,
+   "flare": 0.0,
+   "flareY": 0.8183,
+   "loose": false,
+   "bell": false,
+   "smooth": false
+  }
+ },
  "groundOffsetM": 0.0
 }
