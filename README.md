@@ -5,7 +5,13 @@ Aprangos derinių kūrimo programėlė – Junior Achievement verslumo konkurso 
 ## Kaip paleisti
 Atsisiųskite visą repozitoriją (Code → Download ZIP), išskleiskite ir du kartus spustelėkite `index.html`. Aplankas `assets` turi būti šalia `index.html`. Nieko diegti nereikia.
 
-## Kas jau veikia (demo v7)
+## Gyva nuoroda
+https://linertasmatas-star.github.io/NovaFit/
+
+## Kas jau veikia (demo v8)
+- Pradžios žingsniai (rodomi pirmą kartą, vėliau – paspaudus logotipą): Sveiki → Paskyra → Matmenys → Avataras. Paskyra – demonstracinė imitacija: paskyros nekuriamos, duomenys niekur nesiunčiami. Papildomi matmenys (rankų ilgis, juosmuo, klubai) išsaugomi, bet avataro kol kas nekeičia
+- Naujas pagrindinis ekranas pagal dizaino sistemą: šviesi scena su avataru, apatinis meniu (Derinys / Spinta / Mano deriniai + „Pasiūlyk derinį“), matomo drabužio spalvos peržiūra
+- Avataro baziniai apatiniai – juodi
 - Laisvo kirpimo drabužiai: laisvi (oversize) marškinėliai ir plačios kelnės – visoms 10 figūrų, kataloge ir kaip tipai įkeliant savo drabužį
 - Remiamos rekomendacijos: stilistas šalia derinio parodo vieną prekės ženklo drabužį su žyma „Remiama“ – galima pasimatuoti ant avataro ir „Žiūrėti parduotuvėje“. Prekės ženklas, kainos ir parduotuvė kol kas išgalvoti (demonstracinė imitacija)
 - Stilistas: pasirinkus progą (mokykla, sportas, šventė) derinys užsideda ant avataro – pirmiausia iš savo spintos, ko trūksta – iš katalogo; trumpas paaiškinimas ir „Kitas variantas“. Veikia pagal progos ir spalvų derinimo taisykles – tai ne dirbtinis intelektas (demonstracinė imitacija)

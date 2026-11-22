@@ -2,245 +2,379 @@
 <html lang="lt">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NovaFit – demo v7</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16151B">
+<title>NovaFit – demo v8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
 <style>
-  /* ===== BENDRAS STILIUS: tamsi tema su violetiniu švytėjimu =====
-     Spalvas lengva keisti čia, viršuje (--accent = pagrindinė violetinė). */
+  /* ===== DIZAINO SISTEMA (žr. projekto dokumentą design-sistema.md) =====
+     Visos spalvos – tik iš šių kintamųjų. Violetinė – tik akcentams. Jokių gradientų ir švytėjimo. */
   :root {
-    --bg:#0b0912; --card:#121019; --card2:#1a1726; --ink:#f2f0fa; --muted:#9a94b3;
-    --accent:#8b5cf6; --accent2:#6366f1; --glow:rgba(139,92,246,.45); --line:#26213a;
+    --bg:#16151B; --surface:#1F1E26; --surface-2:#2A2933; --line:#36353F;
+    --ink:#F4F3F7; --muted:#A3A1AE;
+    --accent:#7C3AED; --accent-hover:#6D28D9; --accent-text:#B49CFF; --accent-soft:rgba(124,58,237,.16);
+    --stage:#ECEAF2; --stage-word:#DDD9E7;
+    --success:#3FB97A; --error:#F0626A;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  body {
-    margin:0; font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink);
-    background:
-      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.22), transparent 60%),
-      radial-gradient(900px 500px at 110% 10%, rgba(99,102,241,.18), transparent 60%),
-      var(--bg);
-    min-height:100vh;
-  }
-  header { padding:18px 24px; display:flex; align-items:baseline; gap:12px; max-width:1140px; margin:0 auto; }
-  header h1 {
-    margin:0; font-family:"Space Grotesk", Manrope, sans-serif; font-size:24px; letter-spacing:.5px;
-    background:linear-gradient(90deg,#c4b5fd,#8b5cf6 55%,#6366f1); -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
-  header span { color:var(--muted); font-size:13px; }
-  header { align-items:center; }
-  .logo { width:120px; height:auto; display:block; filter:drop-shadow(0 0 14px rgba(139,92,246,.35)); }
+  html, body { margin:0; background:var(--bg); }
+  body { font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); font-size:16px; line-height:24px; min-height:100vh; }
+  button, input, select { font:inherit; color:inherit; }
+  button { cursor:pointer; }
+  h1, h2 { font-family:"Space Grotesk", Manrope, sans-serif; font-weight:600; margin:0; }
+  h1 { font-size:28px; line-height:34px; }
+  h2 { font-size:20px; line-height:26px; }
   .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
-  main { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr); gap:18px; padding:0 20px 24px; max-width:1140px; margin:0 auto; }
-  @media (max-width:760px) { main { grid-template-columns:1fr; } }
-  .panel {
-    background:linear-gradient(180deg, var(--card2), var(--card)); border:1px solid var(--line);
-    border-radius:22px; padding:18px; box-shadow:0 20px 50px rgba(0,0,0,.45);
-  }
-  h2 { font-family:"Space Grotesk", Manrope, sans-serif; font-weight:500; font-size:16px; margin:0 0 12px; }
-  button { font:inherit; cursor:pointer; color:var(--ink); }
-  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
-  .chip { border:1px solid var(--line); background:#17142200; background-color:#161321; border-radius:999px; padding:6px 13px; font-size:13px; color:var(--muted); transition:.15s; }
-  .chip:hover { color:var(--ink); border-color:#3a3257; }
-  .chip.active { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border-color:transparent; box-shadow:0 0 18px var(--glow); }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; }
-  .item { position:relative; border:1px solid var(--line); background:#14111e; border-radius:16px; padding:7px; text-align:left; transition:.15s; }
-  .item:hover { border-color:#3a3257; transform:translateY(-1px); }
-  .item.worn { border-color:var(--accent); background:#1b1530; box-shadow:0 0 0 1px var(--accent), 0 0 22px var(--glow); }
-  .item canvas.thumb { width:100%; height:84px; display:block; border-radius:11px; object-fit:contain;
-    background:radial-gradient(circle at 50% 35%, #f3f1fb, #c9c3e0 90%); }
-  .item b { display:block; font-size:13px; font-weight:600; margin-top:7px; }
-  .item small { color:var(--muted); font-size:11px; }
-  .stage { display:flex; justify-content:center; border-radius:18px; margin:4px 0 6px;
-    background:radial-gradient(closest-side at 50% 55%, rgba(139,92,246,.30), rgba(99,102,241,.10) 55%, transparent 100%); }
-  #avatar { width:100%; max-width:360px; height:auto; }
-  .row { display:flex; justify-content:space-between; align-items:center; }
-  .worn-list { list-style:none; padding:0; margin:10px 0 0; font-size:13px; }
-  .worn-list li { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); color:var(--muted); }
-  .worn-list li b { color:var(--ink); font-weight:600; }
-  .worn-list button, .link { border:none; background:none; color:#a78bfa; font-size:12px; text-decoration:none; }
-  .worn-list button:hover, .link:hover { color:#c4b5fd; text-decoration:underline; }
-  .empty { color:var(--muted); font-size:13px; }
-  .measure { display:grid; grid-template-columns:52px 1fr 64px 22px; align-items:center; gap:8px; font-size:13px; margin-bottom:10px; color:var(--muted); }
-  .measure input[type=range] { width:100%; accent-color:var(--accent); }
-  .measure input[type=number] { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:10px; font:inherit; background:#0f0d17; color:var(--ink); }
-  .measure input[type=number]:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(139,92,246,.25); }
-  .hint { color:var(--muted); font-size:12px; margin:0 0 8px; }
-  .save-row { display:flex; gap:8px; margin-top:14px; }
-  .save-row input { flex:1; min-width:0; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:#0f0d17; color:var(--ink); font:inherit; font-size:13px; }
-  .save-row input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(139,92,246,.25); }
-  .primary { border:none; border-radius:12px; padding:10px 16px; font-weight:600; font-size:13px; color:#fff;
-    background:linear-gradient(135deg,var(--accent),var(--accent2)); box-shadow:0 8px 24px rgba(139,92,246,.35); white-space:nowrap; }
-  .primary:hover { filter:brightness(1.1); }
-  #saveMsg { margin-top:8px; min-height:16px; }
-  #saveMsg.ok { color:#a78bfa; }
-  .saved { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; }
-  .outfit { position:relative; border:1px solid var(--line); background:#14111e; border-radius:16px; transition:.15s; }
-  .outfit:hover { border-color:#3a3257; transform:translateY(-1px); }
-  .outfit .open { width:100%; border:none; background:none; padding:7px; text-align:left; }
-  .outfit canvas { width:100%; height:auto; display:block; border-radius:11px;
-    background:radial-gradient(closest-side at 50% 60%, rgba(139,92,246,.35), #1a1628); }
-  .outfit b { display:block; font-size:13px; font-weight:600; margin-top:7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .outfit small { color:var(--muted); font-size:11px; }
-  .del { position:absolute; top:10px; right:10px; width:26px; height:26px; border-radius:50%; border:1px solid var(--line);
-    background:rgba(11,9,18,.75); color:var(--muted); font-size:15px; line-height:1; }
-  .del:hover { color:#fff; border-color:#e5484d; background:#e5484d; }
-  .del.edit { right:40px; font-size:12px; }
-  .del.edit:hover { border-color:var(--accent); background:var(--accent); }
+  .muted { color:var(--muted); }
+  .label { font-size:13px; line-height:18px; font-weight:600; color:var(--muted); }
+  svg.ic { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+  [hidden] { display:none !important; }
+  [tabindex="-1"]:focus { outline:none; }
 
-  /* ===== MANO SPINTA ===== */
-  .tabs { display:flex; gap:4px; padding:4px; margin-bottom:12px; border:1px solid var(--line); border-radius:14px; background:#0f0d17; }
-  .tab { flex:1; border:none; background:none; border-radius:10px; padding:9px 10px; font-size:14px; font-weight:600; color:var(--muted); transition:.15s; }
-  .tab:hover { color:var(--ink); }
-  .tab.active { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 0 18px var(--glow); }
-  .item.own { position:relative; padding:0; }
-  .item.own .open { width:100%; border:none; background:none; padding:7px; text-align:left; }
-  .photo { position:relative; display:block; height:84px; border-radius:11px; overflow:hidden; background:#2a2342; }
-  .photo img { width:100%; height:100%; object-fit:cover; display:block; }
-  .photo i { position:absolute; left:6px; bottom:6px; width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow:0 1px 6px rgba(0,0,0,.6); }
-  .item.add { cursor:pointer; border-style:dashed; border-color:#4a3f73; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:140px; }
-  .item.add .plus { font-size:30px; line-height:1; color:#a78bfa; }
-  .grid .empty { grid-column:1/-1; margin:4px 0 0; }
-  #wardrobeMsg { margin:10px 0 0; min-height:16px; }
-  .modal { position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(5,4,10,.72); backdrop-filter:blur(4px); }
-  .modal[hidden] { display:none; }
-  .sheet { width:100%; max-width:380px; max-height:calc(100vh - 32px); overflow:auto; }
-  .sheet canvas { display:block; margin:0 auto 6px; max-width:100%; max-height:240px; border-radius:14px; cursor:crosshair; touch-action:manipulation; }
-  .field { display:block; font-size:12px; color:var(--muted); margin-top:12px; }
-  .field input[type=text], .field select { display:block; width:100%; margin-top:5px; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:#0f0d17; color:var(--ink); font:inherit; font-size:16px; }
-  .field input:focus, .field select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(139,92,246,.25); }
-  .color-row { display:flex; align-items:center; gap:10px; margin-top:6px; }
-  .color-row input[type=color] { width:46px; height:40px; padding:0; border:1px solid var(--line); border-radius:10px; background:none; cursor:pointer; }
-  .sheet .actions { display:flex; justify-content:flex-end; align-items:center; gap:14px; margin-top:16px; }
-  .sheet .link { font-size:13px; }
+  /* --- Mygtukai --- */
+  .btn { height:48px; padding:0 20px; border-radius:14px; border:1px solid transparent; font-size:15px; font-weight:600;
+         display:inline-flex; align-items:center; justify-content:center; gap:8px; transition:background-color .12s ease-out, transform .12s ease-out; }
+  .btn:active { transform:scale(.97); }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:var(--accent-hover); }
+  .btn-secondary { background:var(--surface-2); border-color:var(--line); color:var(--ink); }
+  .btn-big { height:56px; border-radius:16px; font-size:16px; font-weight:700; width:100%; }
+  .link { border:0; background:none; color:var(--accent-text); font-size:15px; font-weight:600; min-height:44px; padding:0 4px; }
+  .link:hover { color:#D3C4FF; }
+  .icon-btn { width:44px; height:44px; border-radius:999px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink);
+              display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .chip { height:40px; padding:0 14px; border-radius:999px; background:var(--surface-2); border:1px solid transparent; color:var(--muted);
+          font-size:14px; font-weight:600; transition:color .12s ease-out, background-color .12s ease-out; white-space:nowrap; }
+  .chip:hover { color:var(--ink); }
+  .chip.active { background:var(--accent-soft); border-color:var(--accent); color:var(--ink); }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .seg { display:grid; grid-auto-columns:1fr; grid-auto-flow:column; gap:4px; padding:4px; background:var(--surface); border:1px solid var(--line); border-radius:16px; }
+  .seg button { height:44px; border:0; border-radius:12px; background:transparent; color:var(--muted); font-size:15px; font-weight:600; }
+  .seg button.active { background:var(--accent); color:#fff; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:16px; }
+  .tag { display:inline-block; padding:0 8px; border-radius:6px; background:var(--surface-2); color:var(--muted); font-size:13px; line-height:20px; font-weight:500; font-style:normal; }
+  .hint { color:var(--muted); font-size:13px; line-height:18px; margin:8px 0 0; min-height:18px; }
+  .hint.ok { color:var(--success); }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .input { height:48px; padding:0 14px; border-radius:14px; background:var(--surface); border:1px solid var(--line); color:var(--ink); font-size:16px; width:100%; }
+  .input:focus, .seg button:focus-visible, .btn:focus-visible, .chip:focus-visible, .icon-btn:focus-visible, .link:focus-visible { outline:2px solid var(--accent-text); outline-offset:2px; }
+  .input::placeholder { color:#6F6D7A; }
 
-  /* ===== BLOKAI (kompiuteryje – tiesiog panelių dalys) ===== */
-  .blk-saved { margin-top:22px; }
-  .blk-measures summary { list-style:none; pointer-events:none; }
-  .blk-measures summary::-webkit-details-marker { display:none; }
-  #measureSummary { display:none; }
+  /* ===== PRADŽIOS SRAUTAS ===== */
+  .onb { position:fixed; inset:0; z-index:30; background:var(--bg); overflow:auto; }
+  .step { min-height:100%; max-width:440px; margin:0 auto; display:flex; flex-direction:column; padding:0 16px calc(24px + env(safe-area-inset-bottom)); }
+  .step-head { display:flex; align-items:center; gap:12px; padding-top:16px; }
+  .progress { flex-grow:1; height:6px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+  .progress i { display:block; height:100%; border-radius:999px; background:var(--accent); }
+  .step-title { padding:20px 4px 0; display:flex; flex-direction:column; gap:8px; }
+  .step-title p { margin:0; font-size:15px; line-height:22px; color:var(--muted); }
+  .step-foot { margin-top:auto; padding-top:24px; display:flex; flex-direction:column; gap:4px; }
 
-  /* ===== STILISTAS ===== */
-  .stylist { margin:4px 0 14px; padding:12px 14px; border:1px solid #3a3257; border-radius:16px;
-    background:linear-gradient(135deg, rgba(139,92,246,.14), rgba(99,102,241,.06)); }
-  .stylist h2 { margin:0 0 4px; }
-  .stylist .hint { margin:0 0 10px; }
-  .stylist .chips { margin-bottom:0; }
-  .advice { margin:12px 0 0; padding-top:12px; border-top:1px solid #3a3257; font-size:13px; line-height:1.5; }
+  .hello-hero { position:relative; height:min(492px, 58vh); margin:8px -8px 0; border-radius:28px; overflow:hidden; background:#0F0E13; }
+  .hello-hero .stripes { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .hello-hero .disc { position:absolute; left:50%; top:50%; width:min(290px, 74%); aspect-ratio:1; transform:translate(-50%,-50%); border-radius:999px; background:rgba(22,21,27,.5); }
+  .hello-hero .big-logo { position:absolute; left:50%; top:50%; width:min(220px, 56%); height:auto; transform:translate(-50%,-50%); }
+  .dots { display:flex; gap:6px; }
+  .dots i { width:6px; height:6px; border-radius:999px; background:var(--line); }
+  .dots i.on { width:24px; background:var(--accent); }
+  .hello-text { padding:16px 8px 0; display:flex; flex-direction:column; gap:12px; }
+  .hello-text h1 { font-size:34px; line-height:40px; }
+  .hello-text h1 span { color:var(--accent-text); }
+  .hello-text p { margin:0; color:var(--muted); }
+
+  .social { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding-top:20px; }
+  .or { display:flex; align-items:center; gap:12px; padding:16px 0 0; font-size:13px; color:var(--muted); }
+  .or::before, .or::after { content:""; flex-grow:1; height:1px; background:var(--line); }
+  .acc-form { display:flex; flex-direction:column; gap:12px; padding-top:16px; }
+  .pw { position:relative; }
+  .pw .input { padding-right:52px; }
+  .pw button { position:absolute; right:2px; top:2px; width:44px; height:44px; border:0; border-radius:12px; background:none; color:var(--muted); display:flex; align-items:center; justify-content:center; }
+  .check { display:flex; align-items:flex-start; gap:10px; font-size:13px; line-height:18px; color:var(--muted); min-height:44px; padding-top:4px; }
+  .check input { width:20px; height:20px; margin:0; accent-color:var(--accent); flex-shrink:0; }
+  .foot-links { display:flex; justify-content:space-between; }
+  .foot-links .link:first-child { color:var(--muted); }
+
+  .rows { background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:4px 12px 4px 16px; }
+  .mrow { min-height:60px; display:flex; align-items:center; justify-content:space-between; gap:8px; border-bottom:1px solid var(--line); }
+  .mrow:last-child { border-bottom:0; }
+  .mrow > span { font-size:15px; font-weight:600; }
+  .stepper { display:flex; align-items:center; gap:6px; }
+  .stepper input { width:64px; height:44px; text-align:center; border:0; border-radius:10px; background:transparent; font-family:"Space Grotesk", sans-serif; font-weight:600; font-size:20px; -moz-appearance:textfield; }
+  .stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+  .stepper input:focus { outline:2px solid var(--accent-text); }
+  .stepper small { font-size:13px; color:var(--muted); width:20px; }
+  .extra-head { display:flex; justify-content:space-between; padding:16px 4px 8px; }
+
+  /* Scena (šviesus fonas, avataras ant pakylos) – bendra pradžiai ir pagrindiniam ekranui */
+  .scene { position:relative; background:var(--stage); border-radius:28px; overflow:hidden; display:flex; justify-content:center; align-items:flex-end; }
+  .scene .word { position:absolute; left:0; right:0; top:28%; text-align:center; font-family:Anton, "Space Grotesk", sans-serif; font-size:clamp(64px, 22vw, 132px); line-height:1; color:var(--stage-word); white-space:nowrap; pointer-events:none; letter-spacing:2px; }
+  .scene .pedestal { position:absolute; left:50%; bottom:20px; width:min(200px, 52%); height:44px; transform:translateX(-50%); border-radius:50%; border:2px solid var(--accent); opacity:.55; pointer-events:none; }
+  .scene canvas { position:relative; height:100%; width:auto; max-width:100%; display:block; }
+  .scene .pills { position:absolute; left:16px; top:16px; display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+  .scene .pill { background:#fff; color:#16151B; font-size:13px; line-height:18px; font-weight:600; padding:6px 10px; border-radius:10px; }
+  .scene .scene-btn { position:absolute; right:12px; top:12px; height:44px; padding:0 14px; border-radius:999px; border:0; background:#fff; color:#16151B; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; }
+  .onb-scene { height:min(470px, 56vh); margin:16px -8px 0; padding-bottom:30px; }
+
+  /* ===== PAGRINDINIS EKRANAS ===== */
+  .top { display:flex; align-items:center; justify-content:space-between; gap:12px; max-width:1140px; margin:0 auto; padding:12px 16px 8px; }
+  .home { border:0; background:none; padding:0; border-radius:12px; }
+  .logo { height:40px; width:auto; display:block; }
+  .me-btn { height:40px; padding:0 14px; border-radius:999px; background:var(--surface-2); border:1px solid var(--line); color:var(--muted); font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .app { max-width:1140px; margin:0 auto; padding:0 16px calc(112px + env(safe-area-inset-bottom)); display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.1fr); gap:24px; align-items:start; }
+  .stage { position:sticky; top:8px; height:calc(100vh - 150px); min-height:460px; max-height:760px; padding-bottom:30px; }
+  .content { display:flex; flex-direction:column; gap:16px; min-width:0; }
+  .section-head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:8px; }
+  .swatches { display:flex; flex-wrap:wrap; gap:8px; }
+  .swatch { height:40px; padding:0 12px 0 6px; border-radius:999px; background:var(--surface-2); border:1px solid transparent; color:var(--ink); font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; }
+  .swatch i { width:26px; height:26px; border-radius:999px; border:1px solid rgba(255,255,255,.25); }
+  .swatch.active { border-color:var(--accent); }
+  .occasions { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
+  .occasions button { height:44px; border-radius:14px; border:1px solid transparent; background:var(--surface-2); color:var(--muted); font-size:15px; font-weight:600; }
+  .occasions button.active { background:var(--accent-soft); border-color:var(--accent); color:var(--ink); }
+  .advice { margin-top:12px; font-size:15px; line-height:22px; }
   .advice p { margin:0 0 6px; }
-  .advice .from { color:var(--muted); font-size:12px; }
-  .advice .link { font-size:13px; }
-  .tag { margin-left:6px; padding:1px 7px; border-radius:999px; font-size:10px; font-style:normal; font-weight:600;
-    letter-spacing:.3px; color:#c4b5fd; border:1px solid #4a3f73; vertical-align:middle; }
-
-  /* ===== REMIAMOS REKOMENDACIJOS ===== */
-  .ad { color:#fde68a; border-color:#8a6d1f; background:rgba(250,204,21,.08); }
-  .item .ad { position:absolute; top:12px; left:12px; margin:0; background:rgba(20,17,30,.85); }
-  .sponsor { display:grid; grid-template-columns:84px 1fr; gap:12px; align-items:start; margin-top:12px; padding:10px;
-    border:1px dashed #8a6d1f; border-radius:14px; background:rgba(250,204,21,.04); }
-  .sponsor canvas { width:84px; height:84px; border-radius:11px; object-fit:contain;
-    background:radial-gradient(circle at 50% 35%, #f3f1fb, #c9c3e0 90%); }
-  .sponsor b { display:block; margin:5px 0 1px; font-size:13px; }
-  .sponsor small { color:var(--muted); font-size:11px; }
-  .sponsor p { margin:5px 0 6px; font-size:12px; color:var(--muted); }
-  .sponsor .tag { margin-left:0; }
+  .advice .from { color:var(--muted); font-size:13px; line-height:18px; }
+  .sponsor { display:grid; grid-template-columns:72px 1fr; gap:12px; align-items:start; margin-top:12px; padding:10px; border:1px solid var(--line); border-radius:16px; background:var(--surface-2); }
+  .sponsor canvas { width:72px; height:72px; border-radius:10px; background:var(--stage); }
+  .sponsor b { display:block; font-size:15px; line-height:20px; margin-top:4px; }
+  .sponsor small { color:var(--muted); font-size:13px; }
+  .sponsor p { margin:4px 0; font-size:13px; line-height:18px; color:var(--muted); }
   .sponsor .acts { display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; }
-  .sponsor .chip { color:var(--ink); border-color:#4a3f73; }
+  .worn-list { list-style:none; padding:0; margin:0; }
+  .worn-list li { display:flex; justify-content:space-between; align-items:center; gap:8px; min-height:48px; border-bottom:1px solid var(--line); font-size:15px; color:var(--muted); }
+  .worn-list li:last-child { border-bottom:0; }
+  .worn-list li b { color:var(--ink); font-weight:600; }
+  .worn-list .tag { margin-left:6px; }
+  .save-row { display:flex; gap:8px; margin-top:12px; }
+  .save-row .input { flex:1; min-width:0; }
+  .empty { color:var(--muted); font-size:15px; line-height:22px; margin:0; }
 
-  /* ===== TITULINIS EKRANAS ===== */
-  .intro { position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center;
-    background:
-      radial-gradient(700px 480px at 50% 38%, rgba(139,92,246,.34), transparent 70%),
-      radial-gradient(900px 500px at 105% 100%, rgba(99,102,241,.20), transparent 60%),
-      radial-gradient(800px 500px at -5% 0%, rgba(139,92,246,.16), transparent 60%),
-      var(--bg);
-    transition:opacity .45s ease, visibility 0s linear 0s; }
-  .intro.hide { opacity:0; visibility:hidden; pointer-events:none; transition:opacity .45s ease, visibility 0s linear .45s; }
-  .intro-in { max-width:460px; animation:introIn .7s ease both; }
-  .intro-logo { width:min(230px, 60vw); height:auto; display:block; margin:0 auto 22px; filter:drop-shadow(0 0 34px rgba(139,92,246,.55)); }
-  .intro-tag { margin:0 0 30px; font-family:"Space Grotesk", Manrope, sans-serif; font-weight:500; font-size:clamp(18px, 4.6vw, 23px); line-height:1.35; color:var(--ink); text-wrap:balance; }
-  .intro-tag span { display:block; margin-top:8px; font-family:Manrope, system-ui, sans-serif; font-weight:400; font-size:14px; color:var(--muted); }
-  .intro-go { font-size:16px; padding:14px 44px; border-radius:999px; box-shadow:0 10px 34px rgba(139,92,246,.5); }
-  .intro-go:focus-visible { outline:2px solid rgba(196,181,253,.7); outline-offset:4px; }
-  .intro-note { margin:26px 0 0; font-size:12px; color:var(--muted); letter-spacing:.4px; }
-  @keyframes introIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
-  @media (prefers-reduced-motion:reduce) { .intro, .intro.hide { transition:none; } .intro-in { animation:none; } }
-  .home { border:none; background:none; padding:0; border-radius:12px; }
+  .tabs { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; margin-bottom:12px; background:var(--surface); border:1px solid var(--line); border-radius:16px; }
+  .tab { height:44px; border:0; border-radius:12px; background:transparent; color:var(--muted); font-size:15px; font-weight:600; }
+  .tab.active { background:var(--accent); color:#fff; }
+  #filters { margin-bottom:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:8px; }
+  .item { position:relative; border:1px solid var(--line); background:var(--surface); border-radius:16px; padding:6px; text-align:left; color:var(--ink); transition:border-color .12s ease-out; }
+  .item:hover { border-color:#4A4954; }
+  .item.worn { border:2px solid var(--accent); background:var(--accent-soft); padding:5px; }
+  .item canvas.thumb { width:100%; height:84px; display:block; border-radius:10px; background:var(--stage); }
+  .item b { display:block; font-size:13px; line-height:18px; font-weight:600; margin-top:6px; }
+  .item small { display:block; color:var(--muted); font-size:13px; line-height:18px; }
+  .item .tag { position:absolute; top:10px; left:10px; background:rgba(22,21,27,.85); }
+  .item.own { padding:0; }
+  .item.own.worn { padding:0; }
+  .item.own .open { width:100%; border:0; background:none; padding:6px; text-align:left; color:inherit; }
+  .photo { position:relative; display:block; height:84px; border-radius:10px; overflow:hidden; background:var(--stage); }
+  .photo img { width:100%; height:100%; object-fit:cover; display:block; }
+  .photo i { position:absolute; left:6px; bottom:6px; width:18px; height:18px; border-radius:50%; border:2px solid #fff; }
+  .item.add { cursor:pointer; border:1px dashed #4A4954; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-height:140px; color:var(--muted); }
+  .item.add b { color:var(--ink); margin:0; }
+  .item.add svg.ic { width:28px; height:28px; color:var(--accent-text); }
+  .grid .empty { grid-column:1/-1; }
+  .mini { position:absolute; top:8px; width:32px; height:32px; border-radius:999px; border:1px solid var(--line); background:rgba(22,21,27,.85); color:var(--ink); display:flex; align-items:center; justify-content:center; }
+  .mini svg.ic { width:16px; height:16px; }
+  .mini.del { right:8px; } .mini.edit { right:46px; }
+  .mini.del:hover { background:var(--error); border-color:var(--error); }
+  .mini.edit:hover { background:var(--accent); border-color:var(--accent); }
+  .saved { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; }
+  .outfit { position:relative; border:1px solid var(--line); background:var(--surface); border-radius:16px; }
+  .outfit .open { width:100%; border:0; background:none; padding:6px; text-align:left; color:inherit; }
+  .outfit canvas { width:100%; height:auto; display:block; border-radius:10px; background:var(--stage); }
+  .outfit b { display:block; font-size:15px; line-height:20px; font-weight:600; margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .outfit small { color:var(--muted); font-size:13px; }
 
-  /* ===== TELEFONAS (siauras ekranas) =====
-     Avataras prilimpa ekrano viršuje ir lieka matomas, kol slenki drabužius. */
+  /* Apatinis meniu – plūduriuojanti „piliulė“ */
+  .dock { position:fixed; left:50%; bottom:calc(16px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:15; height:64px; padding:8px; border-radius:999px;
+          background:#23222B; border:1px solid var(--line); display:flex; align-items:center; gap:8px; }
+  .dock button { width:48px; height:48px; border-radius:999px; border:0; background:#2F2E38; color:var(--muted); display:flex; align-items:center; justify-content:center; transition:background-color .12s ease-out, color .12s ease-out; }
+  .dock button.active { background:var(--ink); color:var(--bg); }
+  .dock .sep { width:1px; height:24px; background:var(--line); margin:0 4px; }
+  .dock #suggest { background:var(--accent); color:#fff; }
+  .dock #suggest:hover { background:var(--accent-hover); }
+
+  /* Langas: savo drabužio duomenys */
+  .modal { position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(10,9,14,.8); }
+  .sheet { width:100%; max-width:380px; max-height:calc(100vh - 32px); overflow:auto; }
+  .sheet canvas { display:block; margin:12px auto 4px; max-width:100%; max-height:240px; border-radius:14px; cursor:crosshair; touch-action:manipulation; }
+  .sheet .field { margin-top:12px; }
+  .sheet select.input { appearance:auto; }
+  .color-row { display:flex; align-items:center; gap:10px; }
+  .color-row input[type=color] { width:48px; height:44px; padding:0; border:1px solid var(--line); border-radius:12px; background:none; cursor:pointer; }
+  .sheet .actions { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:16px; }
+
+  .pop { animation:pop .2s ease-out; }
+  @keyframes pop { from { transform:scale(.96); } to { transform:none; } }
+  @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+
+  /* ===== TELEFONAS ===== */
   @media (max-width:760px) {
-    header { padding:10px 14px; }
-    .logo { width:78px; }
-    main { display:flex; flex-direction:column; gap:12px; padding:0 12px 28px; }
-    main > .panel { display:contents; }                /* dvi pagrindinės panelės „ištirpsta“ – blokus rikiuojam patys */
-    .blk, .stylist { background:linear-gradient(180deg, var(--card2), var(--card)); border:1px solid var(--line);
-      border-radius:18px; padding:14px; margin:0; }
-    .stylist { background:linear-gradient(135deg, rgba(139,92,246,.20), rgba(99,102,241,.08)), var(--card); border-color:#3a3257; }
-    .stage         { order:1; }
-    .blk-measures  { order:2; }
-    .stylist       { order:3; }
-    .blk-catalog   { order:4; }
-    .blk-outfit    { order:5; }
-    .blk-saved     { order:6; }
-
-    .stage { position:sticky; top:0; z-index:5; height:40vh; min-height:250px; margin:0 -12px; border-radius:0 0 24px 24px;
-      border-bottom:1px solid var(--line); box-shadow:0 14px 30px rgba(0,0,0,.55);
-      background:radial-gradient(closest-side at 50% 55%, rgba(139,92,246,.32), rgba(99,102,241,.10) 60%, transparent 100%), var(--bg); }
-    #avatar { height:100%; width:auto; max-width:100%; }
-
-    .blk-measures summary { pointer-events:auto; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .blk-measures summary h2 { margin:0; }
-    .blk-measures[open] summary { margin-bottom:12px; }
-    #measureSummary { display:block; font-size:12px; color:var(--muted); text-align:right; }
-    #measureSummary::after { content:" ▾"; color:#a78bfa; }
-    .blk-measures[open] #measureSummary::after { content:" ▴"; }
-
-    /* Didesni mygtukai pirštui; 16px laukeliai – kad iPhone nepriartintų ekrano */
-    .chip { padding:9px 15px; font-size:14px; }
-    .tab { padding:11px 10px; }
-    .del { width:30px; height:30px; top:8px; right:8px; }
-    .del.edit { right:44px; }
-    .worn-list button, .link { padding:8px 6px; }
-    .measure input[type=number], .save-row input { font-size:16px; }
-    .save-row { flex-wrap:wrap; }
-    .save-row input { flex-basis:100%; }
-    .save-row .primary { width:100%; padding:13px; }
-    .grid { grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); }
+    .top { padding:10px 16px 6px; }
+    .logo { height:34px; }
+    .app { display:flex; flex-direction:column; align-items:stretch; gap:16px; padding:0 8px calc(104px + env(safe-area-inset-bottom)); }
+    .stage { position:sticky; top:0; z-index:5; height:44vh; min-height:300px; max-height:none; border-radius:0 0 28px 28px; margin:0 -8px; padding-bottom:24px; }
+    .stage .pedestal { bottom:14px; height:36px; }
+    .content { padding:0 8px; }
   }
 </style>
 </head>
 <body>
 
-<!-- TITULINIS EKRANAS: rodomas atidarius programėlę; „Pradėti“ – pereinam į programėlę -->
-<div class="intro" id="intro">
-  <div class="intro-in">
-    <img class="intro-logo" src="assets/logo.png" alt="NovaFit">
-    <p class="intro-tag">Susikurk derinį ir pasimatuok jį ant savo avataro
-      <span>Tavo spinta, tavo deriniai – vienoje vietoje.</span></p>
-    <button class="primary intro-go" id="introGo">Pradėti</button>
-    <p class="intro-note">demo v7</p>
-  </div>
+<!-- ===================== PRADŽIOS SRAUTAS =====================
+     Rodomas pirmą kartą atidarius programėlę (vėliau – paspaudus logotipą).
+     Matmenų keitimas iš pagrindinio ekrano atidaro tuos pačius 3–4 žingsnius. -->
+<div class="onb" id="onb" hidden>
+
+  <!-- 1. Sveiki -->
+  <section class="step" data-step="hello">
+    <div class="hello-hero">
+      <img class="stripes" src="assets/stripes.svg" alt="">
+      <div class="disc"></div>
+      <img class="big-logo" src="assets/logo.png" alt="NovaFit">
+    </div>
+    <div class="hello-text">
+      <div class="dots" role="img" aria-label="1 žingsnis iš 4"><i class="on"></i><i></i><i></i><i></i></div>
+      <h1>Tavo spinta.<br>Tavo figūra.<br><span>Tavo stilius.</span></h1>
+      <p>Derinys per minutę – iš to, ką jau turi, ir iškart ant tavo figūros.</p>
+    </div>
+    <div class="step-foot">
+      <button class="btn btn-primary btn-big" data-go="account">Pradėti
+        <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+    </div>
+  </section>
+
+  <!-- 2. Paskyra (DEMONSTRACINĖ IMITACIJA: paskyrų dar nėra, duomenys niekur nesiunčiami ir nesaugomi) -->
+  <section class="step" data-step="account" hidden>
+    <div class="step-head">
+      <button class="icon-btn" data-go="hello" aria-label="Atgal"><svg class="ic" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="progress" role="img" aria-label="2 žingsnis iš 4"><i style="width:50%"></i></div>
+      <span class="label">2 iš 4</span>
+    </div>
+    <div class="step-title">
+      <h1>Susikurk paskyrą</h1>
+      <p>Kad spinta ir deriniai neišnyktų, net pakeitus telefoną.</p>
+    </div>
+    <div class="social">
+      <button class="btn btn-secondary" data-go="measures" data-demo-account>Su Google</button>
+      <button class="btn btn-secondary" data-go="measures" data-demo-account>Su Apple</button>
+    </div>
+    <div class="or">arba el. paštu</div>
+    <form class="acc-form" id="accForm" autocomplete="off" novalidate>
+      <div class="field"><label class="label" for="accName">Vardas</label>
+        <input class="input" id="accName" type="text" placeholder="Kaip tave vadinti?" maxlength="30"></div>
+      <div class="field"><label class="label" for="accEmail">El. paštas</label>
+        <input class="input" id="accEmail" type="email" placeholder="vardas@pastas.lt"></div>
+      <div class="field"><label class="label" for="accPw">Slaptažodis</label>
+        <div class="pw"><input class="input" id="accPw" type="password" placeholder="Bent 8 simboliai">
+          <button type="button" id="pwToggle" aria-label="Rodyti slaptažodį"><svg class="ic" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+      <label class="check"><input type="checkbox" id="accAge">
+        <span>Man jau 14 metų ir sutinku su naudojimo taisyklėmis ir privatumo politika</span></label>
+    </form>
+    <p class="hint" id="accMsg">Demo versija: paskyros dar nekuriamos, įvesti duomenys niekur nesiunčiami.</p>
+    <div class="step-foot">
+      <button class="btn btn-primary btn-big" id="accCreate">Sukurti paskyrą</button>
+      <div class="foot-links">
+        <button class="link" data-go="measures">Tęsti be paskyros</button>
+        <button class="link" data-go="measures" data-demo-account>Jau turiu – prisijungti</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Matmenys -->
+  <section class="step" data-step="measures" hidden>
+    <div class="step-head">
+      <button class="icon-btn" id="measuresBack" data-go="account" aria-label="Atgal"><svg class="ic" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="progress" role="img" aria-label="3 žingsnis iš 4"><i style="width:75%"></i></div>
+      <span class="label">3 iš 4</span>
+    </div>
+    <div class="step-title">
+      <h1>Tavo matmenys</h1>
+      <p>Pagal juos sukursime avatarą. Matmenys lieka tik šiame įrenginyje.</p>
+    </div>
+    <div class="seg" id="genders" role="group" aria-label="Lytis" style="margin-top:16px"></div>
+    <div class="rows" style="margin-top:12px">
+      <div class="mrow"><span id="lblHeight">Ūgis</span><div class="stepper" data-field="height"></div></div>
+      <div class="mrow"><span id="lblWeight">Svoris</span><div class="stepper" data-field="weight"></div></div>
+    </div>
+    <div class="extra-head"><span class="label">Tikslesniam avatarui</span><span class="label" style="font-weight:500">nebūtina</span></div>
+    <div class="rows">
+      <div class="mrow"><span id="lblArm">Rankų ilgis</span><div class="stepper" data-field="arm"></div></div>
+      <div class="mrow"><span id="lblWaist">Juosmuo</span><div class="stepper" data-field="waist"></div></div>
+      <div class="mrow"><span id="lblHips">Klubai</span><div class="stepper" data-field="hips"></div></div>
+    </div>
+    <div class="step-foot">
+      <button class="btn btn-primary btn-big" data-go="avatar">Kurti avatarą
+        <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+    </div>
+  </section>
+
+  <!-- 4. Avataras -->
+  <section class="step" data-step="avatar" hidden>
+    <div class="step-head">
+      <button class="icon-btn" data-go="measures" aria-label="Atgal"><svg class="ic" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="progress" role="img" aria-label="4 žingsnis iš 4"><i style="width:100%"></i></div>
+      <span class="label">4 iš 4</span>
+    </div>
+    <div class="step-title">
+      <h1>Štai tavo avataras</h1>
+      <p>Ant jo matuosiesi derinius. Matmenis galėsi pakeisti bet kada.</p>
+    </div>
+    <div class="scene onb-scene">
+      <div class="pedestal"></div>
+      <canvas id="onbAvatar" width="620" height="800" aria-label="Tavo avataras pagal įvestus matmenis" role="img"></canvas>
+      <div class="pills"><span class="pill" id="onbGender"></span><span class="pill" id="onbHeight"></span></div>
+      <button class="scene-btn" data-go="measures"><svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>Keisti</button>
+    </div>
+    <div class="step-foot">
+      <button class="btn btn-primary btn-big" id="onbDone">Atrodo gerai – pradėkim
+        <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+    </div>
+  </section>
 </div>
 
-<header>
+<!-- ===================== PAGRINDINIS EKRANAS ===================== -->
+<header class="top">
   <h1 class="sr">NovaFit</h1>
-  <button class="home" id="home" title="Į titulinį ekraną"><img class="logo" src="assets/logo.png" alt="NovaFit logotipas"></button>
-  <span>demo v7</span>
+  <button class="home" id="home" title="Į pradžią"><img class="logo" src="assets/logo.png" alt="NovaFit – į pradžią"></button>
+  <button class="me-btn" id="editMeasures" title="Keisti matmenis"><span id="measureSummary"></span>
+    <svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg></button>
 </header>
 
-<main>
-  <!-- KAIRĖ: drabužių katalogas -->
-  <section class="panel">
-    <!-- STILISTAS: pasirenki progą – derinys užsideda ant avataro -->
-    <div class="stylist">
-      <h2>Stilistas</h2>
-      <p class="hint">Kur ruošiesi? Parinksiu derinį – pirmiausia iš tavo spintos.</p>
-      <div class="chips" id="occasions"></div>
-      <div class="advice" id="advice" hidden></div>
+<main class="app">
+  <!-- Scena su avataru (telefone prilimpa viršuje) -->
+  <section class="scene stage" aria-label="Avataras">
+    <div class="word" id="bigWord" aria-hidden="true">NOVAFIT</div>
+    <div class="pedestal"></div>
+    <canvas id="avatar" width="620" height="800" role="img" aria-label="Avataras su dabartiniu deriniu"></canvas>
+    <p class="hint" id="bodyInfo" style="position:absolute;left:16px;bottom:8px;margin:0;color:#5A5866"></p>
+  </section>
+
+  <section class="content">
+    <!-- DERINYS -->
+    <div class="view" id="view-look">
+      <div class="card" id="colorCard" hidden>
+        <div class="section-head"><span class="label" id="colorTitle">Viršaus spalva</span><span class="label" style="font-weight:500">peržiūra</span></div>
+        <div class="swatches" id="swatches"></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="section-head"><h2>Stilistas</h2><span class="label" style="font-weight:500">Kur ruošiesi?</span></div>
+        <div class="occasions" id="occasions"></div>
+        <div class="advice" id="advice" hidden></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="section-head"><h2>Dabartinis derinys</h2><button class="link" id="clearAll">Nurengti viską</button></div>
+        <ul class="worn-list" id="wornList"></ul>
+        <div class="save-row">
+          <input class="input" id="outfitName" maxlength="40" placeholder="Pavadinimas, pvz. Į mokyklą" aria-label="Derinio pavadinimas">
+          <button class="btn btn-primary" id="saveOutfit">Išsaugoti</button>
+        </div>
+        <p class="hint" id="saveMsg"></p>
+      </div>
     </div>
-    <div class="blk blk-catalog">
+
+    <!-- SPINTA: katalogas ir mano spinta -->
+    <div class="view" id="view-closet" hidden>
       <h2 class="sr">Drabužiai</h2>
       <div class="tabs" id="tabs"></div>
       <div class="chips" id="filters"></div>
@@ -249,72 +383,45 @@
       <!-- Laukelis nematomas, bet ne „hidden“: telefonuose paslėptas laukelis galerijos neatidaro -->
       <input type="file" id="photoInput" class="sr" accept="image/*" tabindex="-1">
     </div>
-    <div class="blk blk-saved">
-      <h2>Mano deriniai</h2>
-      <div class="saved" id="saved"></div>
-    </div>
-  </section>
 
-  <!-- DEŠINĖ: avataras ir dabartinis derinys -->
-  <section class="panel">
-    <!-- Telefone šis blokas suskleidžiamas (rodoma tik santrauka), kompiuteryje – visada atidarytas -->
-    <details class="blk blk-measures" id="measures" open>
-    <summary><h2>Tavo matmenys</h2><span id="measureSummary"></span></summary>
-    <div class="chips" id="genders"></div>
-    <div class="measure">
-      <span>Ūgis</span>
-      <input type="range" id="heightRange" min="140" max="210" step="1">
-      <input type="number" id="heightNum" min="140" max="210">
-      <span>cm</span>
-    </div>
-    <div class="measure">
-      <span>Svoris</span>
-      <input type="range" id="weightRange" min="40" max="150" step="1">
-      <input type="number" id="weightNum" min="40" max="150">
-      <span>kg</span>
-    </div>
-    <p class="hint">Greitas pasirinkimas:</p>
-    <div class="chips" id="shapes"></div>
-    <p class="hint" id="bodyInfo"></p>
-    </details>
-    <div class="stage"><canvas id="avatar" width="620" height="800"></canvas></div>
-    <div class="blk blk-outfit">
-    <div class="row">
-      <h2 style="margin:10px 0 0">Dabartinis derinys</h2>
-      <button class="link" id="clearAll">Nurengti viską</button>
-    </div>
-    <ul class="worn-list" id="wornList"></ul>
-    <div class="save-row">
-      <input id="outfitName" maxlength="40" placeholder="Derinio pavadinimas (pvz. Į mokyklą)">
-      <button class="primary" id="saveOutfit">Išsaugoti derinį</button>
-    </div>
-    <p class="hint" id="saveMsg"></p>
+    <!-- MANO DERINIAI -->
+    <div class="view" id="view-saved" hidden>
+      <div class="section-head"><h2>Mano deriniai</h2></div>
+      <div class="saved" id="saved"></div>
     </div>
   </section>
 </main>
 
+<nav class="dock" aria-label="Pagrindinis meniu">
+  <button data-view="look" aria-label="Derinys" title="Derinys"><svg class="ic" viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg></button>
+  <button data-view="closet" aria-label="Spinta ir katalogas" title="Spinta ir katalogas"><svg class="ic" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></button>
+  <button data-view="saved" aria-label="Mano deriniai" title="Mano deriniai"><svg class="ic" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
+  <span class="sep" aria-hidden="true"></span>
+  <button id="suggest" aria-label="Pasiūlyk derinį" title="Pasiūlyk derinį"><svg class="ic" viewBox="0 0 24 24"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-7.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg></button>
+</nav>
+
 <!-- LANGAS: naujo (arba taisomo) savo drabužio duomenys -->
 <div class="modal" id="itemForm" hidden>
-  <div class="panel sheet">
+  <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="itemFormTitle">
     <h2 id="itemFormTitle">Naujas drabužis</h2>
     <canvas id="itemPhoto" width="240" height="240"></canvas>
-    <label class="field">Kas tai?
-      <select id="itemType"></select>
+    <label class="field"><span class="label">Kas tai?</span>
+      <select class="input" id="itemType"></select>
     </label>
-    <label class="field">Pavadinimas (nebūtina)
-      <input type="text" id="itemName" maxlength="40" placeholder="pvz. Mėgstamiausias džemperis">
+    <label class="field"><span class="label">Pavadinimas (nebūtina)</span>
+      <input class="input" type="text" id="itemName" maxlength="40" placeholder="pvz. Mėgstamiausias džemperis">
     </label>
-    <div class="field">Spalva
+    <div class="field"><span class="label">Spalva</span>
       <div class="color-row">
         <input type="color" id="itemColor" aria-label="Drabužio spalva">
         <button class="link" id="colorAuto">Grąžinti automatinę</button>
       </div>
     </div>
-    <p class="hint" style="margin-top:8px">Spalvą parinkome iš nuotraukos. Jei netinka – paspausk ant drabužio nuotraukoje arba pasirink pats.</p>
-    <p class="hint" id="itemMsg" style="min-height:16px"></p>
+    <p class="hint">Spalvą parinkome iš nuotraukos. Jei netinka – paspausk ant drabužio nuotraukoje arba pasirink pats.</p>
+    <p class="hint" id="itemMsg"></p>
     <div class="actions">
-      <button class="link" id="itemCancel">Atšaukti</button>
-      <button class="primary" id="itemSave">Pridėti į spintą</button>
+      <button class="btn btn-secondary" id="itemCancel">Atšaukti</button>
+      <button class="btn btn-primary" id="itemSave">Pridėti į spintą</button>
     </div>
   </div>
 </div>
@@ -431,7 +538,13 @@ const state = {
   weight: 65,       // svoris, kg
   worn: {},         // pvz. { top: 3, bottom: 5 } – kategorija → drabužio id
   filter: "all",    // kuri katalogo kategorija rodoma
-  tab: "catalog"    // "catalog" (pavyzdinis katalogas) arba "mine" (mano spinta)
+  tab: "catalog",   // "catalog" (pavyzdinis katalogas) arba "mine" (mano spinta)
+  // Papildomi matmenys (nebūtini). DĖMESIO: kol kas avataro nekeičia – figūra parenkama tik pagal lytį, ūgį ir svorį.
+  arm: 60, waist: 72, hips: 96,
+  tint: {},         // spalvos peržiūra: { top: "#hex" } – kaip atrodytų kitos spalvos drabužis
+  view: "look",     // apatinio meniu skiltis: "look" (derinys), "closet" (spinta), "saved" (deriniai)
+  lastOccasion: null,
+  onboarded: false  // ar jau praėjo pradžios žingsnius
 };
 
 // =====================================================================
@@ -597,7 +710,7 @@ function renderCatalog() {
   $("catalog").innerHTML = items.map(i => `
     <button class="item ${state.worn[i.category] === i.id ? "worn" : ""}" data-item="${i.id}">
       <canvas class="thumb" width="236" height="168" data-thumbitem="${i.id}"></canvas>
-      ${i.sponsored ? `<em class="tag ad">Remiama</em>` : ""}
+      ${i.sponsored ? `<em class="tag">Remiama</em>` : ""}
       <b>${i.name}</b><small>${i.sponsored ? `${i.brand} · ${i.price}` : `${CATEGORIES[i.category]} · ${i.style}`}</small>
     </button>`).join("");
   // Miniatiūros piešiamos iš tų pačių sluoksnių, kurie uždedami ant avataro
@@ -645,7 +758,8 @@ function renderWardrobe() {
   // <label>, o ne mygtukas: paspaudus naršyklė pati atidaro galeriją / failų langą.
   // Telefonuose tai patikimiau nei atidarymas per kodą.
   let html = `<label class="item add" id="addItem" for="photoInput" tabindex="0" role="button">
-      <span class="plus">+</span><b>Įkelti drabužį</b><small>Nuotrauka iš telefono ar kompiuterio</small>
+      <svg class="ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+      <b>Įkelti drabužį</b><small>Nuotrauka iš telefono ar kompiuterio</small>
     </label>`;
   html += items.map(i => `
     <div class="item own ${state.worn[i.category] === i.id ? "worn" : ""}">
@@ -653,34 +767,47 @@ function renderWardrobe() {
         <span class="photo"><img src="${i.photo}" alt=""><i style="background:${i.color}"></i></span>
         <b>${esc(i.name)}</b><small>${CATEGORIES[i.category]} · ${TYPES[i.type].name}</small>
       </button>
-      <button class="del edit" data-edititem="${i.id}" title="Taisyti">✎</button>
-      <button class="del" data-delitem="${i.id}" title="Ištrinti iš spintos">×</button>
+      <button class="mini edit" data-edititem="${i.id}" aria-label="Taisyti" title="Taisyti">${ICON.edit}</button>
+      <button class="mini del" data-delitem="${i.id}" aria-label="Ištrinti iš spintos" title="Ištrinti iš spintos">${ICON.del}</button>
     </div>`).join("");
-  if (!wardrobe.length) html += `<p class="empty">Tavo spinta dar tuščia. Nufotografuok drabužį (geriausia – ant lygaus, vienspalvio fono) ir įkelk.</p>`;
+  if (!wardrobe.length) html += `<p class="empty">Tavo spinta kol kas tuščia. Nufotografuok pirmą drabužį (geriausia – ant lygaus fono) ir pradėkim!</p>`;
   else if (!items.length) html += `<p class="empty">Šioje kategorijoje savo drabužių dar neturi.</p>`;
   $("catalog").innerHTML = html;
 }
 
-function renderShapes() {
-  $("shapes").innerHTML = Object.entries(BODY_SHAPES).map(([key, s]) =>
-    `<button class="chip" data-shape="${key}">${s.name}</button>`).join("");
-}
+// Linijinės ikonos (Lucide stiliaus)
+const ICON = {
+  edit: `<svg class="ic" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>`,
+  del:  `<svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`,
+  minus:`<svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>`,
+  plus: `<svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>`
+};
+// Matmenų laukeliai pradžios žingsnyje: [mažiausia, didžiausia, vienetai]
+const MEASURES = { height:[140, 210, "cm", "Ūgis"], weight:[40, 150, "kg", "Svoris"], arm:[45, 80, "cm", "Rankų ilgis"],
+                   waist:[50, 140, "cm", "Juosmuo"], hips:[70, 150, "cm", "Klubai"] };
 
 // Ūgio ir svorio laukeliai rodo tą patį skaičių kaip ir būsena
 // Trumpa matmenų santrauka (telefone matoma, kai blokas suskleistas)
 function renderMeasureSummary() {
-  $("measureSummary").textContent = `${state.gender === "female" ? "Moteris" : "Vyras"} · ${state.height} cm · ${state.weight} kg`;
+  $("measureSummary").textContent = `${state.gender === "female" ? "Moteris" : "Vyras"} · ${state.height} cm`;
 }
+// Pradžios „Matmenys“ žingsnis: − / skaičius / + kiekvienam matmeniui
 function renderMeasures() {
-  $("heightRange").value = $("heightNum").value = state.height;
-  $("weightRange").value = $("weightNum").value = state.weight;
+  document.querySelectorAll(".stepper").forEach(el => {
+    const f = el.dataset.field, [min, max, unit, name] = MEASURES[f];
+    if (el.contains(document.activeElement)) return;   // nekeičiam laukelio, kuriame žmogus dabar rašo
+    el.innerHTML = `<button class="icon-btn" data-step-field="${f}" data-delta="-1" aria-label="${name}: mažiau">${ICON.minus}</button>
+      <input type="number" inputmode="numeric" min="${min}" max="${max}" value="${state[f]}" data-measure="${f}" aria-labelledby="lbl${f[0].toUpperCase() + f.slice(1)}">
+      <small>${unit}</small>
+      <button class="icon-btn" data-step-field="${f}" data-delta="1" aria-label="${name}: daugiau">${ICON.plus}</button>`;
+  });
   renderMeasureSummary();
 }
 
 function renderGenders() {
   const g = { female: "Moteris", male: "Vyras" };
   $("genders").innerHTML = Object.entries(g).map(([key, name]) =>
-    `<button class="chip ${state.gender === key ? "active" : ""}" data-gender="${key}">${name}</button>`).join("");
+    `<button class="${state.gender === key ? "active" : ""}" data-gender="${key}" aria-pressed="${state.gender === key}">${name}</button>`).join("");
 }
 
 // =====================================================================
@@ -748,7 +875,8 @@ async function prepareAvatar(cfg) {
     // Po striuke ar paltu laisvi marškinėliai „susispaudžia“ – kitaip kyšotų pro šonus.
     // Todėl tada piešiam įprastų marškinėlių sluoksnį.
     const type = item.type === "oversize" && cfg.worn.outer ? "tshirt" : item.type;
-    layers.push(await coloredLayer(fig, type, item.color));
+    const color = (cfg.tint && cfg.tint[cat]) || item.color;   // spalvos peržiūra, jei pasirinkta
+    layers.push(await coloredLayer(fig, type, color));
   }
   return { body, layers };
 }
@@ -763,30 +891,31 @@ function paintAvatar(ctx, W, H, cfg, prep, showHeight) {
   ctx.translate(W / 2, groundY);
   ctx.scale(k, k);
   ctx.translate(-FIG.imgW / 2, -FIG.footY);
-  ctx.fillStyle = "rgba(139,92,246,.28)";
-  ctx.beginPath(); ctx.ellipse(FIG.imgW / 2, FIG.footY - 2, 120, 12, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(22,21,27,.10)";   // lengvas šešėlis po pėdomis
+  ctx.beginPath(); ctx.ellipse(FIG.imgW / 2, FIG.footY - 2, 110, 10, 0, 0, Math.PI * 2); ctx.fill();
   ctx.drawImage(prep.body, 0, 0);
   for (const l of prep.layers) ctx.drawImage(l, 0, 0);
   ctx.restore();
   if (showHeight) {   // Ūgio linija
     const headY = groundY - cfg.height * FIG.pxPerCm;
-    ctx.strokeStyle = "rgba(167,139,250,.6)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(124,58,237,.55)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(10, headY); ctx.lineTo(140, headY); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = "#a78bfa"; ctx.font = "22px Manrope, system-ui, sans-serif";
+    ctx.fillStyle = "#6D28D9"; ctx.font = "600 22px Manrope, system-ui, sans-serif";
     ctx.fillText(`${cfg.height} cm`, 10, headY - 8);
   }
 }
 
-let renderToken = 0;
-async function renderAvatar() {
-  const token = ++renderToken;
-  const b = bodyFromMeasures(state.height, state.weight);
-  $("bodyInfo").textContent = `Figūra: ${figureName(b.bmi)}`;
-  const cfg = { gender: state.gender, height: state.height, weight: state.weight, worn: { ...state.worn } };
+const renderTokens = {};
+// Nupiešia avatarą į nurodytą drobę: pagrindiniame ekrane – su drabužiais, pradžioje – be jų
+async function renderAvatar(canvasId = "avatar", dressed = true) {
+  const token = renderTokens[canvasId] = (renderTokens[canvasId] || 0) + 1;
+  $("bodyInfo").textContent = "";
+  const cfg = { gender: state.gender, height: state.height, weight: state.weight,
+                worn: dressed ? { ...state.worn } : {}, tint: dressed ? { ...state.tint } : {} };
   try {
     const prep = await prepareAvatar(cfg);
-    if (token !== renderToken) return;   // kol krovėm, vartotojas jau pakeitė kažką kita
-    const cv = $("avatar");
+    if (token !== renderTokens[canvasId]) return;   // kol krovėm, vartotojas jau pakeitė kažką kita
+    const cv = $(canvasId);
     paintAvatar(cv.getContext("2d"), cv.width, cv.height, cfg, prep, true);
   } catch (err) {
     $("bodyInfo").textContent = "Nepavyko įkelti avataro paveikslėlių (aplankas assets/avatar turi būti šalia index.html).";
@@ -804,8 +933,10 @@ let outfits = [];   // [{ id, name, created, gender, height, weight, worn }]
 function persist() {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify({
-      profile: { gender: state.gender, height: state.height, weight: state.weight },
+      profile: { gender: state.gender, height: state.height, weight: state.weight,
+                 arm: state.arm, waist: state.waist, hips: state.hips, onboarded: state.onboarded },
       current: state.worn,
+      tint: state.tint,
       outfits
     }));
     return true;
@@ -837,9 +968,17 @@ function restore() {
   if (p.gender === "female" || p.gender === "male") state.gender = p.gender;
   if (p.height) state.height = clamp(p.height, 140, 210);
   if (p.weight) state.weight = clamp(p.weight, 40, 150);
+  for (const f of ["arm", "waist", "hips"]) if (p[f]) state[f] = clamp(p[f], MEASURES[f][0], MEASURES[f][1]);
+  state.onboarded = !!p.onboarded;
   state.worn = cleanWorn(data.current);
-  outfits = Array.isArray(data.outfits) ? data.outfits.map(o => ({ ...o, worn: cleanWorn(o.worn) })) : [];
+  state.tint = cleanTint(data.tint);
+  outfits = Array.isArray(data.outfits) ? data.outfits.map(o => ({ ...o, worn: cleanWorn(o.worn), tint: cleanTint(o.tint) })) : [];
 }
+const cleanTint = t => {
+  const out = {};
+  for (const c of ["top", "outer"]) if (t && /^#[0-9a-f]{6}$/i.test(t[c] || "")) out[c] = t[c];
+  return out;
+};
 // Paliekam tik tuos drabužius, kurie dar yra kataloge
 function cleanWorn(w) {
   const out = {};
@@ -855,25 +994,26 @@ const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;"
 function saveOutfit() {
   const msg = $("saveMsg");
   if (!Object.keys(state.worn).length) {
-    msg.className = "hint"; msg.textContent = "Pirmiausia apvilk bent vieną drabužį.";
+    msg.className = "hint"; msg.textContent = "Pirmiausia apvilk bent vieną drabužį – spausk drabužį spintoje arba „Pasiūlyk derinį“.";
     return;
   }
   const name = $("outfitName").value.trim() || `Derinys ${outfits.length + 1}`;
   outfits.unshift({
     id: Date.now(), name, created: new Date().toISOString(),
-    gender: state.gender, height: state.height, weight: state.weight, worn: { ...state.worn }
+    gender: state.gender, height: state.height, weight: state.weight, worn: { ...state.worn }, tint: { ...state.tint }
   });
   const ok = persist();
   $("outfitName").value = "";
   msg.className = ok ? "hint ok" : "hint";
-  msg.textContent = ok ? `Išsaugota: „${name}“ ✓` : "Derinys pridėtas, bet naršyklė neleidžia jo įsiminti – perkrovus dings.";
+  msg.textContent = ok ? `Išsaugota! Rasi „Mano deriniuose“.` : "Derinys pridėtas, bet naršyklė neleidžia jo įsiminti – perkrovus dings.";
   renderSaved();
 }
 
 function openOutfit(id) {
   const o = outfits.find(x => x.id === id);
   if (!o) return;
-  state.gender = o.gender; state.height = o.height; state.weight = o.weight; state.worn = { ...o.worn };
+  state.gender = o.gender; state.height = o.height; state.weight = o.weight; state.worn = { ...o.worn }; state.tint = { ...(o.tint || {}) };
+  state.view = "look";
   $("saveMsg").className = "hint ok"; $("saveMsg").textContent = `Atidaryta: „${o.name}“`;
 }
 
@@ -887,7 +1027,7 @@ function deleteOutfit(id) {
 
 function renderSaved() {
   if (!outfits.length) {
-    $("saved").innerHTML = `<p class="empty">Dar nėra išsaugotų derinių. Sukurk derinį ir spausk „Išsaugoti derinį“.</p>`;
+    $("saved").innerHTML = `<p class="empty">Čia atsiras tavo deriniai. Susidėk derinį ir spausk „Išsaugoti“.</p>`;
     return;
   }
   $("saved").innerHTML = outfits.map(o => `
@@ -897,7 +1037,7 @@ function renderSaved() {
         <b>${esc(o.name)}</b>
         <small>${new Date(o.created).toLocaleDateString("lt-LT")} · ${Object.keys(o.worn).length} drab.</small>
       </button>
-      <button class="del" data-del="${o.id}" title="Ištrinti derinį">×</button>
+      <button class="mini del" data-del="${o.id}" aria-label="Ištrinti derinį" title="Ištrinti derinį">${ICON.del}</button>
     </div>`).join("");
   // Mažieji avatarai piešiami tuo pačiu būdu kaip didysis, tik 4 kartus mažesni
   for (const o of outfits) {
@@ -1069,9 +1209,9 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && draft) clo
 function renderWornList() {
   const cats = Object.keys(CATEGORIES).filter(c => state.worn[c]);
   $("wornList").innerHTML = cats.length
-    ? cats.map(c => `<li><span>${CATEGORIES[c]}: <b>${esc(byId(state.worn[c]).name)}</b> ${isMine(state.worn[c]) ? `<em class="tag">mano</em>` : ""}${byId(state.worn[c]).sponsored ? `<em class="tag ad">remiama</em>` : ""}</span>
-                     <button data-remove="${c}">nuimti</button></li>`).join("")
-    : `<li class="empty">Paspausk drabužį kataloge, kad jį apvilktum.</li>`;
+    ? cats.map(c => `<li><span>${CATEGORIES[c]}: <b>${esc(byId(state.worn[c]).name)}</b>${isMine(state.worn[c]) ? `<em class="tag">mano</em>` : ""}${byId(state.worn[c]).sponsored ? `<em class="tag">Remiama</em>` : ""}${state.tint[c] ? `<em class="tag">kita spalva</em>` : ""}</span>
+                     <button class="link" data-remove="${c}">Nuimti</button></li>`).join("")
+    : `<li class="empty">Kol kas nieko neapvilkta. Spausk „Pasiūlyk derinį“ arba rinkis drabužius spintoje.</li>`;
 }
 
 // =====================================================================
@@ -1083,13 +1223,13 @@ function renderWornList() {
 // Kiekvienai progai: kiek kuris drabužio tipas tinka (3 – labai, 1 – gali būti; nėra – netinka).
 // skip – kiek „verta“ striukės ar kepurės nedėti visai (kuo daugiau, tuo rečiau dedama).
 const OCCASIONS = {
-  school: { name:"Mokykla / kasdien", intro:"Patogus derinys kiekvienai dienai.", style:"Kasdienis",
+  school: { name:"Mokykla / kasdien", short:"Mokykla", word:"MOKYKLA", intro:"Patogus derinys kiekvienai dienai.", style:"Kasdienis",
             fit:{ tshirt:2, oversize:3, sweater:3, shirt:1, pants:3, widepants:3, skirt:2, shorts:1, sneakers:3, boots:2, jacket:2, coat:1, beanie:1, cap:1 },
             skip:{ outer:1, hat:2 } },
-  sport:  { name:"Sportas", intro:"Laisvi, judesių nevaržantys drabužiai.", style:"Sportinis",
+  sport:  { name:"Sportas", short:"Sportas", word:"SPORTAS", intro:"Laisvi, judesių nevaržantys drabužiai.", style:"Sportinis",
             fit:{ tshirt:3, oversize:2, sweater:2, shorts:3, pants:1, widepants:1, sneakers:3, cap:2 },
             skip:{ outer:0, hat:1.5 } },
-  party:  { name:"Šventė / išėjimas", intro:"Puošnesnis, tvarkingas derinys.", style:"Elegantiškas",
+  party:  { name:"Šventė / išėjimas", short:"Šventė", word:"ŠVENTĖ", intro:"Puošnesnis, tvarkingas derinys.", style:"Elegantiškas",
             fit:{ shirt:3, sweater:1, tshirt:1, oversize:1, pants:3, widepants:2, skirt:3, boots:3, sneakers:1, coat:2, jacket:1 },
             skip:{ outer:1.5, hat:0 } }
 };
@@ -1190,6 +1330,8 @@ function applyStylist(occasion, index) {
   if (!list.length) { stylist = { occasion, index:0, count:0, text:"Šiai progai tinkamo derinio sudėti nepavyko.", from:"" }; return; }
   const pick = list[index % list.length];
   state.worn = {};
+  state.tint = {};
+  state.lastOccasion = occasion;
   for (const i of pick.items) state.worn[i.category] = i.id;
   const mine = pick.items.filter(i => isMine(i.id)), cat = pick.items.filter(i => !isMine(i.id));
   const list2 = arr => arr.map(i => esc(i.name)).join(", ");
@@ -1222,24 +1364,24 @@ function pickSponsored(occasion, outfit) {
 
 function renderStylist() {
   $("occasions").innerHTML = Object.entries(OCCASIONS).map(([key, o]) =>
-    `<button class="chip ${stylist && stylist.occasion === key ? "active" : ""}" data-occasion="${key}">${o.name}</button>`).join("");
+    `<button class="${stylist && stylist.occasion === key ? "active" : ""}" data-occasion="${key}">${o.short}</button>`).join("");
   $("advice").hidden = !stylist;
   if (!stylist) return;
   let html = `<p>${stylist.text}</p><p class="from">${stylist.from}</p>` +
-    (stylist.count > 1 ? `<button class="link" id="nextLook">Kitas variantas (${stylist.index + 1} iš ${stylist.count}) →</button>` : "");
+    (stylist.count > 1 ? `<button class="link" id="nextLook">Kitas variantas (${stylist.index + 1} iš ${stylist.count})</button>` : "");
   const sp = stylist.sponsor, ad = sp && byId(sp.id);
   if (ad) {
     const prev = sp.prev && byId(sp.prev);
     html += `<div class="sponsor">
       <canvas width="168" height="168" id="adThumb"></canvas>
       <div>
-        <em class="tag ad">Remiama</em>
+        <em class="tag">Remiama</em>
         <b>${ad.name}</b><small>${ad.brand} · ${ad.price}</small>
         <p>${sp.tried ? "Pasimatuota ant tavo avataro." : `Derėtų prie šio derinio${prev ? ` vietoj „${esc(prev.name)}“` : ""}.`}</p>
         <div class="acts">
-          ${sp.tried ? `<button class="chip" data-untry="${ad.id}">Grąžinti ankstesnį</button>`
-                     : `<button class="chip" data-try="${ad.id}">Pasimatuoti</button>`}
-          <button class="link" id="shopBtn">Žiūrėti parduotuvėje →</button>
+          ${sp.tried ? `<button class="btn btn-secondary" data-untry="${ad.id}">Grąžinti ankstesnį</button>`
+                     : `<button class="btn btn-secondary" data-try="${ad.id}">Pasimatuoti</button>`}
+          <button class="link" id="shopBtn">Žiūrėti parduotuvėje</button>
         </div>
         ${sp.shop ? `<p>Demonstracija: tikroje versijoje čia atsidarytų parduotuvės puslapis, o NovaFit gautų komisinį.</p>` : ""}
       </div>
@@ -1249,31 +1391,80 @@ function renderStylist() {
   if (ad) paintThumb($("adThumb"), ad).catch(err => console.error(err));
 }
 
-function render() {
-  renderStylist();
-  renderTabs(); renderFilters(); renderCatalog(); renderGenders(); renderShapes(); renderMeasures(); renderAvatar(); renderWornList();
-  persist();   // atsimenam lytį, ūgį, svorį ir dabartinį derinį
+// Viršaus spalvos peržiūra: kaip atrodytų tas pats drabužis kita spalva
+const TINTS = [["Balta", "#F4F1EA"], ["Juoda", "#2B2B2F"], ["Smėlinė", "#D8C3A0"], ["Žalsva", "#9DB08A"], ["Alyvinė", "#B9A6E8"], ["Mėlyna", "#5B7FA8"]];
+// Spalvą keičiam labiausiai matomam drabužiui: striukei / paltui, jei apvilkta, kitaip – viršui
+const tintCat = () => state.worn.outer ? "outer" : "top";
+function renderSwatches() {
+  const cat = tintCat(), top = state.worn[cat] && byId(state.worn[cat]);
+  $("colorCard").hidden = !top;
+  if (!top) return;
+  $("colorTitle").textContent = `Spalva: ${top.name.toLowerCase()}`;
+  const cur = state.tint[cat] || null;
+  $("swatches").innerHTML = [["Originali", null, top.color], ...TINTS.map(([n, h]) => [n, h, h])].map(([name, val, show]) =>
+    `<button class="swatch ${cur === val ? "active" : ""}" data-tint="${val || ""}" aria-pressed="${cur === val}"><i style="background:${show}"></i>${name}</button>`).join("");
 }
 
-// Ūgio/svorio keitimas: slankiklis ir skaičiaus laukelis veikia kartu
-const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
-function onMeasure(field, min, max, el) {
-  const v = Number(el.value);
-  if (!v) return;                       // laukelis tuščias – laukiam, kol įves
-  state[field] = clamp(Math.round(v), min, max);
-  // Atnaujinam kitą laukelį, bet ne tą, į kurį žmogus dabar rašo
-  const other = el.type === "range" ? field + "Num" : field + "Range";
-  $(other).value = state[field];
-  renderMeasureSummary();
-  renderAvatar();
-  persist();
+// Apatinio meniu skiltys
+function renderView() {
+  for (const v of ["look", "closet", "saved"]) $("view-" + v).hidden = state.view !== v;
+  document.querySelectorAll(".dock [data-view]").forEach(b => {
+    const on = b.dataset.view === state.view;
+    b.classList.toggle("active", on);
+    if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
+  const occ = (stylist && stylist.occasion) || state.lastOccasion;
+  $("bigWord").textContent = occ ? OCCASIONS[occ].word : "NOVAFIT";
 }
-$("heightRange").addEventListener("input", e => onMeasure("height", 140, 210, e.target));
-$("heightNum").addEventListener("input",   e => onMeasure("height", 140, 210, e.target));
-$("weightRange").addEventListener("input", e => onMeasure("weight", 40, 150, e.target));
-$("weightNum").addEventListener("input",   e => onMeasure("weight", 40, 150, e.target));
+
+function render() {
+  renderStylist();
+  renderTabs(); renderFilters(); renderCatalog(); renderGenders(); renderMeasures(); renderAvatar(); renderWornList();
+  renderSwatches(); renderView();
+  persist();   // atsimenam matmenis ir dabartinį derinį
+}
+
+// ===================== PRADŽIOS SRAUTAS =====================
+let editing = false;   // true – matmenys keičiami iš pagrindinio ekrano (ne pirmą kartą)
+function showStep(name) {
+  $("onb").hidden = false;
+  document.querySelectorAll(".step").forEach(s => s.hidden = s.dataset.step !== name);
+  $("onb").scrollTop = 0;
+  if (name === "avatar") {
+    $("onbGender").textContent = state.gender === "female" ? "Moteris" : "Vyras";
+    $("onbHeight").textContent = `${state.height} cm`;
+    $("onbDone").firstChild.textContent = editing ? "Išsaugoti " : "Atrodo gerai – pradėkim ";
+    renderAvatar("onbAvatar", false);
+  }
+  if (name === "measures") { renderGenders(); renderMeasures(); }
+  const first = document.querySelector(`.step[data-step="${name}"] h1, .step[data-step="${name}"] button`);
+  if (first) { first.setAttribute("tabindex", "-1"); first.focus({ preventScroll: true }); }
+}
+function closeOnboarding() {
+  $("onb").hidden = true;
+  editing = false;
+  state.onboarded = true;
+  render(); renderSaved();
+}
+
+// Matmens skaičiaus įvedimas ranka (− / + mygtukai tvarkomi paspaudimų dalyje)
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+document.addEventListener("input", e => {
+  const f = e.target.dataset && e.target.dataset.measure;
+  if (!f) return;
+  const v = Number(e.target.value);
+  if (!v) return;                       // laukelis tuščias – laukiam, kol įves
+  state[f] = clamp(Math.round(v), MEASURES[f][0], MEASURES[f][1]);
+  renderMeasureSummary(); persist();
+});
 // Išėjus iš laukelio – parodom pataisytą skaičių (pvz. 300 → 210)
-["heightNum", "weightNum"].forEach(id => $(id).addEventListener("change", renderMeasures));
+document.addEventListener("change", e => { if (e.target.dataset && e.target.dataset.measure) { e.target.blur(); renderMeasures(); } });
+$("pwToggle").addEventListener("click", () => {
+  const pw = $("accPw"), show = pw.type === "password";
+  pw.type = show ? "text" : "password";
+  $("pwToggle").setAttribute("aria-label", show ? "Slėpti slaptažodį" : "Rodyti slaptažodį");
+});
+$("accForm").addEventListener("submit", e => e.preventDefault());
 
 // =====================================================================
 // 5. PASPAUDIMAI – kas vyksta, kai vartotojas ką nors spaudžia
@@ -1282,9 +1473,44 @@ document.addEventListener("click", e => {
   const el = e.target.closest("button");
   if (!el) return;
   const d = el.dataset;
-  // --- Titulinis ekranas ---
-  if (el.id === "introGo") { $("intro").classList.add("hide"); return; }
-  if (el.id === "home") { $("intro").classList.remove("hide"); $("introGo").focus(); return; }
+  const prevTop = state.worn.top, prevOuter = state.worn.outer;
+  // --- Pradžios srautas ---
+  if (el.id === "pwToggle") return;
+  if (d.go) {
+    if (editing && d.go === "account") { closeOnboarding(); return; }   // keičiant matmenis „Atgal“ grąžina į programėlę
+    if (el.id === "accCreate") return;
+    showStep(d.go); return;
+  }
+  if (el.id === "accCreate") {
+    // DEMONSTRACINĖ IMITACIJA: tikrinam tik laukelius, paskyra nekuriama
+    const ok = $("accName").value.trim() && /\S+@\S+\.\S+/.test($("accEmail").value) && $("accPw").value.length >= 8 && $("accAge").checked;
+    if (!ok) { $("accMsg").className = "hint"; $("accMsg").textContent = "Užpildyk vardą, el. paštą, bent 8 simbolių slaptažodį ir pažymėk varnelę – arba spausk „Tęsti be paskyros“."; return; }
+    $("accPw").value = "";
+    showStep("measures"); return;
+  }
+  if (el.id === "onbDone") { closeOnboarding(); return; }
+  if (el.id === "home") { editing = false; showStep("hello"); return; }
+  if (el.id === "editMeasures") { editing = true; showStep("measures"); return; }
+  if (d.stepField) {
+    const f = d.stepField, [min, max] = MEASURES[f];
+    state[f] = clamp(state[f] + Number(d.delta), min, max);
+    renderMeasures(); persist(); return;
+  }
+  if (d.gender && !$("onb").hidden) { state.gender = d.gender; renderGenders(); renderMeasureSummary(); persist(); return; }
+  // --- Apatinis meniu ---
+  if (d.view) { state.view = d.view; renderView(); window.scrollTo({ top: 0 }); return; }
+  if (el.id === "suggest") {
+    state.view = "look";
+    if (stylist && stylist.count > 1) applyStylist(stylist.occasion, stylist.index + 1);
+    else applyStylist(state.lastOccasion || "school", 0);
+    render(); $("avatar").classList.remove("pop"); void $("avatar").offsetWidth; $("avatar").classList.add("pop");
+    return;
+  }
+  // --- Spalvos peržiūra ---
+  if ("tint" in d) {
+    if (d.tint) state.tint[tintCat()] = d.tint; else delete state.tint[tintCat()];
+    render(); return;
+  }
   // --- Mano spinta ---
   if (el.id === "itemCancel") { closeItemForm(); return; }
   if (el.id === "itemSave") { saveItem(); return; }
@@ -1299,8 +1525,6 @@ document.addEventListener("click", e => {
   // --- Katalogas, avataras, deriniai ---
   if (d.filter) state.filter = d.filter;
   if (d.gender) state.gender = d.gender;
-  // Greitas pasirinkimas: pagal dabartinį ūgį nustatom tipišką svorį
-  if (d.shape) state.weight = clamp(Math.round(PRESET_BMI[d.shape] * (state.height / 100) ** 2), 40, 150);
   // --- Remiama rekomendacija: pasimatuoti / grąžinti / parduotuvė ---
   if (d.try || d.untry) {
     const sp = stylist.sponsor, ad = byId(sp.id);
@@ -1326,21 +1550,19 @@ document.addEventListener("click", e => {
   if (el.id === "saveOutfit") { saveOutfit(); return; }
   if (d.del) { deleteOutfit(Number(d.del)); return; }
   if (d.outfit) openOutfit(Number(d.outfit));
+  if (!d.outfit && !d.occasion && el.id !== "nextLook") {   // kitas drabužis – originali spalva
+    if (state.worn.top !== prevTop) delete state.tint.top;
+    if (state.worn.outer !== prevOuter) delete state.tint.outer;
+  }
   render();
 });
 // Enter pavadinimo laukelyje = išsaugoti
 $("outfitName").addEventListener("keydown", e => { if (e.key === "Enter") saveOutfit(); });
 
-// Telefone matmenų blokas iš pradžių suskleistas, kompiuteryje – visada atidarytas
-const phone = window.matchMedia("(max-width:760px)");
-const fitMeasures = () => { $("measures").open = !phone.matches; };
-phone.addEventListener("change", fitMeasures);
-fitMeasures();
-
 restore();
-$("introGo").focus();   // kad titulinį ekraną būtų galima praeiti ir klavišu Enter
 render();
 renderSaved();
+if (!state.onboarded) showStep("hello");   // pirmą kartą – pradžios žingsniai
 </script>
 </body>
 </html>
