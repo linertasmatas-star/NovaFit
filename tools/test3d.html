@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NovaFit – 3D avataro bandymas</title>
+<!-- Tik kūrėjams: patikrinti assets/avatar3d/body.glb ir jo formas. Programėlė šio failo nenaudoja. -->
+<style>
+  body { margin:0; background:#16151B; color:#F4F3F7; font:14px Manrope, system-ui, sans-serif; }
+  #view { width:100vw; height:70vh; display:block; background:#ECEAF2; }
+  .panel { padding:12px 16px; display:grid; grid-template-columns:110px 1fr 48px; gap:6px 10px; align-items:center; max-width:520px; }
+  input[type=range] { width:100%; accent-color:#7C3AED; }
+</style>
+<script type="importmap">{ "imports": { "three": "../assets/lib/three/three.module.js", "three/addons/": "../assets/lib/three/addons/" } }</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div class="panel" id="panel"></div>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const canvas = document.getElementById("view");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#ECEAF2");
+const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 20);
+camera.position.set(0, 0.95, 4.2);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 0.85, 0); controls.enablePan = false; controls.update();
+scene.add(new THREE.HemisphereLight("#ffffff", "#b9b4c9", 1.6));
+const key = new THREE.DirectionalLight("#ffffff", 1.6); key.position.set(-1.5, 2.5, 2.5); scene.add(key);
+
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+
+const gltf = await new GLTFLoader().loadAsync("../assets/avatar3d/body.glb");
+const body = gltf.scene.getObjectByName("avatar");
+scene.add(gltf.scene);
+const meshes = []; gltf.scene.traverse(o => o.isMesh && meshes.push(o));
+// Apatiniai: kūno taškų laukas > 0 – nuspalvinam juodai (kraštas tolygus, be laiptelių)
+const underUniforms = { uMale: { value: 0 }, uUnder: { value: new THREE.Color("#1A1A1D") } };
+for (const m of meshes) {
+  m.material.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, underUniforms);
+    sh.vertexShader = "attribute float _underf;\nattribute float _underm;\nuniform float uMale;\nvarying float vUnder;\n" +
+      sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vUnder = mix(_underf, _underm, uMale);");
+    sh.fragmentShader = "varying float vUnder;\nuniform vec3 uUnder;\n" +
+      sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>\n { float w = fwidth(vUnder); diffuseColor.rgb = mix(diffuseColor.rgb, uUnder, smoothstep(-w, w, vUnder)); }");
+  };
+  m.material.needsUpdate = true;
+}
+const dict = meshes[0].morphTargetDictionary;
+const set = (name, v) => meshes.forEach(m => { m.morphTargetInfluences[dict[name]] = v; });
+
+const sliders = { "lytis (vyras)": ["male", 0, 1], "svoris": ["weight", -1, 1], "juosmuo": ["waist", -1, 1], "klubai": ["hips", -1, 1], "žastas": ["upperarm", -1, 1], "dilbis": ["lowerarm", -1, 1] };
+const val = { male: 0, weight: 0, waist: 0, hips: 0, upperarm: 0, lowerarm: 0 };
+function apply() {
+  for (const k of Object.keys(dict)) set(k, 0);
+  const g = val.male >= 0.5 ? "m" : "f";
+  set("male", val.male);
+  underUniforms.uMale.value = val.male >= 0.5 ? 1 : 0;
+  if (val.weight < 0) set(`${g}-thin`, -val.weight); else set(`${g}-heavy`, val.weight);
+  for (const k of ["waist", "hips", "upperarm", "lowerarm"]) set(k + (val[k] < 0 ? "-" : "+"), Math.abs(val[k]));
+}
+const panel = document.getElementById("panel");
+for (const [label, [k, min, max]] of Object.entries(sliders)) {
+  panel.insertAdjacentHTML("beforeend", `<span>${label}</span><input type="range" min="${min}" max="${max}" step="0.01" value="0" data-k="${k}"><output id="o-${k}">0</output>`);
+}
+panel.addEventListener("input", e => { const k = e.target.dataset.k; val[k] = +e.target.value; document.getElementById("o-" + k).textContent = val[k].toFixed(2); apply(); });
+window.__set = (o) => { Object.assign(val, o); apply(); renderer.render(scene, camera); };
+window.__ready = true;
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>

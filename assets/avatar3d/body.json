@@ -1,0 +1,346 @@
+{
+ "units": "1 vienetas = 1 m",
+ "base": "female, vidutinis svoris",
+ "measures": {
+  "female-thin": {
+   "waist": 59.0,
+   "hips": 86.1,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-thin|waist-": {
+   "waist": 49.1,
+   "hips": 86.1,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-thin|waist+": {
+   "waist": 69.4,
+   "hips": 86.1,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-thin|hips-": {
+   "waist": 59.0,
+   "hips": 78.4,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-thin|hips+": {
+   "waist": 59.0,
+   "hips": 96.9,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-thin|upperarm-": {
+   "waist": 59.0,
+   "hips": 86.1,
+   "arm": 39.5,
+   "height": 159.0
+  },
+  "female-thin|upperarm+": {
+   "waist": 59.0,
+   "hips": 86.1,
+   "arm": 51.3,
+   "height": 159.0
+  },
+  "female-thin|lowerarm-": {
+   "waist": 59.0,
+   "hips": 86.1,
+   "arm": 39.9,
+   "height": 159.0
+  },
+  "female-thin|lowerarm+": {
+   "waist": 59.0,
+   "hips": 86.1,
+   "arm": 50.7,
+   "height": 159.0
+  },
+  "female-avg": {
+   "waist": 65.3,
+   "hips": 89.8,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-avg|waist-": {
+   "waist": 55.9,
+   "hips": 89.8,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-avg|waist+": {
+   "waist": 68.3,
+   "hips": 89.8,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-avg|hips-": {
+   "waist": 65.3,
+   "hips": 82.4,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-avg|hips+": {
+   "waist": 65.3,
+   "hips": 97.0,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-avg|upperarm-": {
+   "waist": 65.3,
+   "hips": 89.8,
+   "arm": 39.5,
+   "height": 159.0
+  },
+  "female-avg|upperarm+": {
+   "waist": 65.3,
+   "hips": 89.8,
+   "arm": 51.3,
+   "height": 159.0
+  },
+  "female-avg|lowerarm-": {
+   "waist": 65.3,
+   "hips": 89.8,
+   "arm": 39.9,
+   "height": 159.0
+  },
+  "female-avg|lowerarm+": {
+   "waist": 65.3,
+   "hips": 89.8,
+   "arm": 50.7,
+   "height": 159.0
+  },
+  "female-heavy": {
+   "waist": 70.0,
+   "hips": 93.1,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-heavy|waist-": {
+   "waist": 62.0,
+   "hips": 93.1,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-heavy|waist+": {
+   "waist": 72.8,
+   "hips": 93.1,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-heavy|hips-": {
+   "waist": 65.8,
+   "hips": 89.2,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-heavy|hips+": {
+   "waist": 70.3,
+   "hips": 103.4,
+   "arm": 44.3,
+   "height": 159.0
+  },
+  "female-heavy|upperarm-": {
+   "waist": 70.0,
+   "hips": 93.1,
+   "arm": 39.5,
+   "height": 159.0
+  },
+  "female-heavy|upperarm+": {
+   "waist": 70.0,
+   "hips": 93.1,
+   "arm": 51.3,
+   "height": 159.0
+  },
+  "female-heavy|lowerarm-": {
+   "waist": 70.0,
+   "hips": 93.1,
+   "arm": 39.9,
+   "height": 159.0
+  },
+  "female-heavy|lowerarm+": {
+   "waist": 70.0,
+   "hips": 93.1,
+   "arm": 50.7,
+   "height": 159.0
+  },
+  "male-thin": {
+   "waist": 64.5,
+   "hips": 88.4,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-thin|waist-": {
+   "waist": 58.1,
+   "hips": 88.4,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-thin|waist+": {
+   "waist": 71.0,
+   "hips": 88.4,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-thin|hips-": {
+   "waist": 62.1,
+   "hips": 81.4,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-thin|hips+": {
+   "waist": 69.5,
+   "hips": 104.2,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-thin|upperarm-": {
+   "waist": 64.5,
+   "hips": 88.4,
+   "arm": 47.1,
+   "height": 173.0
+  },
+  "male-thin|upperarm+": {
+   "waist": 64.5,
+   "hips": 88.4,
+   "arm": 58.9,
+   "height": 173.0
+  },
+  "male-thin|lowerarm-": {
+   "waist": 64.5,
+   "hips": 88.4,
+   "arm": 47.4,
+   "height": 173.0
+  },
+  "male-thin|lowerarm+": {
+   "waist": 64.5,
+   "hips": 88.4,
+   "arm": 58.4,
+   "height": 173.0
+  },
+  "male-avg": {
+   "waist": 64.6,
+   "hips": 94.4,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-avg|waist-": {
+   "waist": 61.0,
+   "hips": 94.4,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-avg|waist+": {
+   "waist": 68.3,
+   "hips": 94.4,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-avg|hips-": {
+   "waist": 61.4,
+   "hips": 88.1,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-avg|hips+": {
+   "waist": 71.1,
+   "hips": 107.7,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-avg|upperarm-": {
+   "waist": 64.6,
+   "hips": 94.4,
+   "arm": 47.1,
+   "height": 173.0
+  },
+  "male-avg|upperarm+": {
+   "waist": 64.6,
+   "hips": 94.4,
+   "arm": 58.9,
+   "height": 173.0
+  },
+  "male-avg|lowerarm-": {
+   "waist": 64.6,
+   "hips": 94.4,
+   "arm": 47.4,
+   "height": 173.0
+  },
+  "male-avg|lowerarm+": {
+   "waist": 64.6,
+   "hips": 94.4,
+   "arm": 58.4,
+   "height": 173.0
+  },
+  "male-heavy": {
+   "waist": 74.8,
+   "hips": 98.6,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-heavy|waist-": {
+   "waist": 68.4,
+   "hips": 98.6,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-heavy|waist+": {
+   "waist": 81.2,
+   "hips": 98.6,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-heavy|hips-": {
+   "waist": 72.3,
+   "hips": 93.2,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-heavy|hips+": {
+   "waist": 79.7,
+   "hips": 111.0,
+   "arm": 51.9,
+   "height": 173.0
+  },
+  "male-heavy|upperarm-": {
+   "waist": 74.8,
+   "hips": 98.6,
+   "arm": 47.1,
+   "height": 173.0
+  },
+  "male-heavy|upperarm+": {
+   "waist": 74.8,
+   "hips": 98.6,
+   "arm": 58.9,
+   "height": 173.0
+  },
+  "male-heavy|lowerarm-": {
+   "waist": 74.8,
+   "hips": 98.6,
+   "arm": 47.4,
+   "height": 173.0
+  },
+  "male-heavy|lowerarm+": {
+   "waist": 74.8,
+   "hips": 98.6,
+   "arm": 58.4,
+   "height": 173.0
+  }
+ },
+ "targetNames": [
+  "male",
+  "f-thin",
+  "f-heavy",
+  "m-thin",
+  "m-heavy",
+  "waist-",
+  "waist+",
+  "hips-",
+  "hips+",
+  "upperarm-",
+  "upperarm+",
+  "lowerarm-",
+  "lowerarm+"
+ ],
+ "groundOffsetM": 0.0
+}
