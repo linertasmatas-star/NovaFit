@@ -177,7 +177,7 @@ W_UNITS, H_UNITS = 13.0, 18.0
 W, H = int(W_UNITS * PX * SS), int(H_UNITS * PX * SS)
 LIGHT = np.array([-0.35, 0.45, 0.82]); LIGHT /= np.linalg.norm(LIGHT)
 SKIN = np.array([226, 214, 200], float)
-UNDER = np.array([138, 150, 168], float)
+UNDER = np.array([46, 46, 52], float)   # juodi apatiniai (anksčiau pilkai mėlyni)
 CLOTH = np.array([236, 236, 236], float)   # pilka bazė – naršyklė padaugina iš spalvos
 
 _edges = np.concatenate([faces[:, [k, (k + 1) % 4]] for k in range(4)])
