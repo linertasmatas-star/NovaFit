@@ -795,7 +795,11 @@ function renderMeasureSummary() {
 function renderMeasures() {
   document.querySelectorAll(".stepper").forEach(el => {
     const f = el.dataset.field, [min, max, unit, name] = MEASURES[f];
-    if (el.contains(document.activeElement)) return;   // nekeičiam laukelio, kuriame žmogus dabar rašo
+    const input = el.querySelector("input");
+    if (input) {   // laukelis jau yra – tik atnaujinam skaičių (bet ne tada, kai žmogus jame rašo)
+      if (document.activeElement !== input) input.value = state[f];
+      return;
+    }
     el.innerHTML = `<button class="icon-btn" data-step-field="${f}" data-delta="-1" aria-label="${name}: mažiau">${ICON.minus}</button>
       <input type="number" inputmode="numeric" min="${min}" max="${max}" value="${state[f]}" data-measure="${f}" aria-labelledby="lbl${f[0].toUpperCase() + f.slice(1)}">
       <small>${unit}</small>
