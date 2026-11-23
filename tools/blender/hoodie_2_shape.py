@@ -97,7 +97,18 @@ def shape(P):
         Sm += (0.5 if it % 2 == 0 else -0.53) * (neighbor_avg(Sm) - Sm)
     c = P[CHEST, :2].mean(0)
     d = P[:, :2] - c
-    r = np.linalg.norm(Sm[:, :2] - c, axis=1) + 1e-9
+    # Stiprus išlyginimas (visos smulkmenos dingsta), o sumažėjusi apimtis grąžinama kiekviename aukštyje
+    Sb = P.copy()
+    for _ in range(80):
+        Sb += 0.5 * (neighbor_avg(Sb) - Sb)
+    rP = np.linalg.norm(P[:, :2] - c, axis=1)
+    rb = np.linalg.norm(Sb[:, :2] - c, axis=1)
+    zbb = np.round((z - hem_z) / 0.02).astype(int)
+    comp = np.zeros(zbb.max() + 1)
+    for k in range(len(comp)):
+        mk = torso & (zbb == k)
+        if mk.sum() > 5: comp[k] = np.median(rP[mk] - rb[mk])
+    r = rb + comp[zbb] + 1e-9
     th = np.arctan2(d[:, 1], d[:, 0])
     bi = ((th + math.pi) / (2 * math.pi) * NB).astype(int) % NB
     zb = ((z - hem_z) / 0.015).astype(int)
@@ -144,7 +155,7 @@ def shape(P):
            (E[np.minimum(k0 + 1, NZ - 1), b0m] * (1 - tb) + E[np.minimum(k0 + 1, NZ - 1), b1m] * tb) * tz)
     shell_r = env + thick
     # Apvalkalo taškų kryptis ir aukštis – iš išlyginto kūno (ne iš odos normalių: ties speneliu jos „išsiskleidžia“)
-    sd = Sm[:, :2] - c
+    sd = Sb[:, :2] - c
     sr = np.linalg.norm(sd, axis=1) + 1e-9
     shellQ = np.column_stack([c + sd / sr[:, None] * np.maximum(shell_r, r + 0.006)[:, None], P[:, 2]])
     Q = Q * (1 - SHELL[:, None]) + shellQ * SHELL[:, None]
