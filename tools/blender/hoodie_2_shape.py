@@ -81,8 +81,8 @@ def shape(P):
     # 2) Liemuo: kiekviename aukštyje – lygi apimtis (apvalkalas), o ne kūno forma.
     # Apvalkalas skaičiuojamas pagal stipriai išlygintą kūną – speneliai ir kitos smulkmenos nebeturi įtakos
     Sm = P.copy()
-    for _ in range(120):
-        Sm += 0.5 * (neighbor_avg(Sm) - Sm)
+    for it in range(160):                                # Taubin: smulkmenos dingsta, tūris lieka
+        Sm += (0.5 if it % 2 == 0 else -0.53) * (neighbor_avg(Sm) - Sm)
     c = P[CHEST, :2].mean(0)
     d = P[:, :2] - c
     r = np.linalg.norm(Sm[:, :2] - c, axis=1) + 1e-9
@@ -96,7 +96,7 @@ def shape(P):
         for jb in range(NB):
             sel = mk & ((bi == jb) | (bi == (jb + 1) % NB) | (bi == (jb - 1) % NB))
             if sel.sum() >= 2:
-                E[k, jb] = np.percentile(r[sel], 75)
+                E[k, jb] = np.percentile(r[sel], 95)
     for _ in range(NB):                       # tuščios kryptys – iš kaimynų
         e0 = E == 0
         if not e0.any(): break
