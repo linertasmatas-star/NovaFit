@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16151B">
-<title>NovaFit – demo v16</title>
+<title>NovaFit – demo v17</title>
 <!-- 3D avatarui: three.js biblioteka projekte (assets/lib/three), kraunama tik įjungus 3D -->
 <script type="importmap">{ "imports": { "three": "./assets/lib/three/three.module.js", "three/addons/": "./assets/lib/three/addons/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -473,6 +473,8 @@ const CATALOG = [
   { id:4,  name:"Žydri marškiniai",     category:"top",    type:"shirt",    color:"#a9c8ea", style:"Elegantiškas", old:true },
   { id:5,  name:"Klasikiniai džinsai",  category:"bottom", type:"jeans",    color:"#3d5a80", style:"Kasdienis" },
   { id:22, name:"Šviesūs džinsai",      category:"bottom", type:"jeans",    color:"#7393b8", style:"Kasdienis" },
+  { id:23, name:"Tamsiai pilkos kostiuminės kelnės", category:"bottom", type:"trousers", color:"#3b3f47", style:"Elegantiškas" },
+  { id:24, name:"Smėlinės kostiuminės kelnės",       category:"bottom", type:"trousers", color:"#c4ae88", style:"Elegantiškas" },
   { id:18, name:"Platūs džinsai",       category:"bottom", type:"widepants", color:"#5b7fa8", style:"Kasdienis", old:true },
   { id:19, name:"Smėlinės plačios kelnės", category:"bottom", type:"widepants", color:"#cdb891", style:"Kasdienis", old:true },
   { id:6,  name:"Juodos kelnės",        category:"bottom", type:"pants",    color:"#262626", style:"Elegantiškas", old:true },
@@ -504,6 +506,8 @@ const TYPES = {
   hoodie:   { name:"Džemperis su kapišonu", category:"top", layer:"sweater" },
   // Džinsai: 3D – Blenderyje (assets/avatar3d/jeans.glb, su kišenėmis, kilpomis, saga), 2D – kelnių sluoksniu
   jeans:    { name:"Džinsai", category:"bottom", layer:"pants" },
+  // Kostiuminės kelnės: 3D – Blenderyje (assets/avatar3d/trousers.glb, lygintas kantas, įstrižos kišenės), 2D – kelnių sluoksniu
+  trousers: { name:"Kostiuminės kelnės", category:"bottom", layer:"pants" },
   shirt:    { name:"Marškiniai",            category:"top" },
   pants:    { name:"Siauros kelnės / džinsai", category:"bottom" },
   widepants:{ name:"Plačios kelnės / džinsai", category:"bottom" },
@@ -719,7 +723,7 @@ const $ = id => document.getElementById(id);
 // Drabužį randam pagal id – ir kataloge, ir mano spintoje
 // Rodomi drabužiai: senieji (old:true) paslėpti – juos keičia Blenderyje sukurti 3D drabužiai. Išsaugotuose deriniuose jie vis dar veikia.
 const shown = () => CATALOG.filter(i => !i.old);
-const MODEL_TYPES = ["hoodie", "sweater", "jeans"];        // turi tikrą 3D modelį (assets/avatar3d/<tipas>.glb)
+const MODEL_TYPES = ["hoodie", "sweater", "jeans", "trousers"];        // turi tikrą 3D modelį (assets/avatar3d/<tipas>.glb)
 const is3d = i => MODEL_TYPES.includes(i.type);
 const byId = id => CATALOG.find(i => i.id === id) || wardrobe.find(i => i.id === id);
 
@@ -1374,13 +1378,13 @@ function renderWornList() {
 // skip – kiek „verta“ striukės ar kepurės nedėti visai (kuo daugiau, tuo rečiau dedama).
 const OCCASIONS = {
   school: { name:"Mokykla / kasdien", short:"Mokykla", word:"MOKYKLA", intro:"Patogus derinys kiekvienai dienai.", style:"Kasdienis",
-            fit:{ tshirt:2, oversize:3, sweater:3, hoodie:3, shirt:1, jeans:3, pants:3, widepants:3, skirt:2, shorts:1, sneakers:3, boots:2, jacket:2, coat:1, beanie:1, cap:1 },
+            fit:{ tshirt:2, oversize:3, sweater:3, hoodie:3, shirt:1, jeans:3, trousers:1, pants:3, widepants:3, skirt:2, shorts:1, sneakers:3, boots:2, jacket:2, coat:1, beanie:1, cap:1 },
             skip:{ outer:1, hat:2 } },
   sport:  { name:"Sportas", short:"Sportas", word:"SPORTAS", intro:"Laisvi, judesių nevaržantys drabužiai.", style:"Sportinis",
             fit:{ tshirt:3, oversize:2, sweater:2, hoodie:3, shorts:3, jeans:1, pants:1, widepants:1, sneakers:3, cap:2 },
             skip:{ outer:0, hat:1.5 } },
   party:  { name:"Šventė / išėjimas", short:"Šventė", word:"ŠVENTĖ", intro:"Puošnesnis, tvarkingas derinys.", style:"Elegantiškas",
-            fit:{ shirt:3, sweater:1, tshirt:1, oversize:1, jeans:1, pants:3, widepants:2, skirt:3, boots:3, sneakers:1, coat:2, jacket:1 },
+            fit:{ shirt:3, sweater:1, tshirt:1, oversize:1, jeans:1, trousers:3, pants:3, widepants:2, skirt:3, boots:3, sneakers:1, coat:2, jacket:1 },
             skip:{ outer:1.5, hat:0 } }
 };
 let stylist = null;   // paskutinis pasiūlymas: { occasion, index, count, text, from }
