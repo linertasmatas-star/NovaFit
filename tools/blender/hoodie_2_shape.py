@@ -54,6 +54,7 @@ hem_z = z[torso].min()
 CHEST = torso & (z > 1.17) & (z < 1.26) & (np.abs(B[:, 0]) < 0.13)   # be pažastų – kitaip apačia per plati
 DRAPE = smoothstep(1.17, 1.10, z) * torso           # žemiau krūtinės – krenta laisvai
 RIB = smoothstep(hem_z + 0.065, hem_z + 0.015, z) * torso   # apačios juosta
+BUST = torso & (z > 1.08) & (z < 1.36) & (B[:, 1] < 0.0)            # priekis (Blender: -Y)
 CUFF = (part == 1) & (apos > 0.925)
 FOLD = (part == 1) & (apos > 0.76) & (apos <= 0.925)
 
@@ -69,6 +70,8 @@ def shape(P):
     S = P.copy()
     for _ in range(40):                                   # audinys neseka smulkmenų (krūtinė, mentės)
         S[torso] += 0.5 * (neighbor_avg(S)[torso] - S[torso])
+    for _ in range(160):                                  # krūtinės sritis – dar lygiau (audinys tempiasi per ją)
+        S[BUST] += 0.5 * (neighbor_avg(S)[BUST] - S[BUST])
     # į išorę – kiek reikia; į vidų – tik iki 3 mm nuo odos (kad nelįstų į kūną)
     lift = np.maximum(((S - P) * n).sum(1), -(thick - 0.003) * torso)
     Q = P + n * (thick + lift)[:, None]
