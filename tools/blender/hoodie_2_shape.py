@@ -135,7 +135,7 @@ def shape(P):
             sel = mk & ((bi == jb) | (bi == (jb + 1) % NB) | (bi == (jb - 1) % NB))
             if sel.sum() >= 2:
                 E[k, jb] = np.percentile(r[sel], 95)
-                Ereq[k, jb] = rr[sel].max() + 0.004
+                Ereq[k, jb] = r[sel].max() + 0.004          # išlyginto (be spenelių) kūno viršūnė
     for _ in range(NB):                       # tuščios kryptys – iš kaimynų
         e0 = E == 0
         if not e0.any(): break
@@ -158,7 +158,7 @@ def shape(P):
     for _ in range(2):
         T_ = gsm(T_)
     zrow = hem_z + (np.arange(NZ) + 0.5) * 0.015
-    cw = (smoothstep(1.00, 1.06, zrow) * smoothstep(1.34, 1.28, zrow))[:, None]
+    cw = (smoothstep(0.90, 0.96, zrow) * smoothstep(1.34, 1.28, zrow))[:, None]
     E = E * (1 - cw) + np.maximum(E, T_) * cw
     for _ in range(4):                        # lyginam aplink ir aukštyn
         E = (np.roll(E, 1, 1) + 2 * E + np.roll(E, -1, 1)) / 4
@@ -184,10 +184,10 @@ def shape(P):
     sd = Sb[:, :2] - c
     sr = np.linalg.norm(sd, axis=1) + 1e-9
     # krūtinėje – tik apvalkalas (jis skaičiuojamas erdviniu tinkleliu, todėl tankus kūno tinklas ties speneliu jo neveikia)
-    cf = SHELL * smoothstep(1.02, 1.08, z)
+    cf = SHELL * smoothstep(0.92, 0.98, z)
     floor = (r + 0.006) * (1 - cf)
     shellQ = np.column_stack([c + sd / sr[:, None] * np.maximum(shell_r, floor)[:, None],
-                              P[:, 2] + (Sb[:, 2] - P[:, 2]) * smoothstep(1.02, 1.08, z) * smoothstep(1.30, 1.24, z)])
+                              P[:, 2] + (Sb[:, 2] - P[:, 2]) * smoothstep(0.92, 0.98, z) * smoothstep(1.30, 1.24, z)])
     Q = Q * (1 - SHELL[:, None]) + shellQ * SHELL[:, None]
     # Audinys užsitempia virš tikro kūno lygiu kupolu: spindulys ≥ odos + 5 mm, bet išlygintas (be smaigalių)
     qd = Q[:, :2] - c
