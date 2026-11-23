@@ -20,6 +20,13 @@ def getco(k):
     a = np.empty(nv * 3, np.float32); k.data.foreach_get("co", a); return a.reshape(-1, 3)
 K = {k.name: getco(k) for k in kb}
 B = K["Basis"]
+# Galvos taškai (kapišonui) – iš kūno modelio, tos pačios formos
+av = bpy.data.objects["avatar"].data
+nav = len(av.vertices)
+apart = np.empty(nav, np.int32); av.attributes["part"].data.foreach_get("value", apart)
+def avco(name):
+    a = np.empty(nav * 3, np.float32); av.shape_keys.key_blocks[name].data.foreach_get("co", a); return a.reshape(-1, 3)
+HEAD = {k.name: avco(k.name)[apart == 3] for k in kb}
 
 # --- Kaklo kraštas (kapišonas prisiūtas prie jo) ---
 cnt = np.zeros(len(edges), int)
@@ -43,7 +50,10 @@ STR_N, STR_SIDES = 9, 6
 def unit(v):
     return v / (np.linalg.norm(v) + 1e-9)
 
-def build(P):
+def smooth01(x):
+    x = min(1.0, max(0.0, x)); return x * x * (3 - 2 * x)
+
+def build(P, kname):
     """Visų detalių taškai vienai kūno formai (P – tos formos džemperio taškai)."""
     bvh = BVHTree.FromPolygons([Vector(p) for p in P], tri.tolist())
     c = P[neck, :2].mean(0)
@@ -53,28 +63,32 @@ def build(P):
         loc, *_ = bvh.ray_cast(Vector(g + nrm * 0.15), Vector(-nrm), 0.3)
         return fallback if loc is None else np.array(loc) + nrm * off
     pts = []
-    # Kapišonas: iš kaklo pakyla apykakle ir guli ant nugaros ir pečių
+    # Kapišonas: apvali forma aplink pakaušį (stovi už galvos), anga veidui priekyje.
+    # Kiekvienam kaklo taškui – „dienovidinis“ nuo kaklo iki viršaus ant elipsoido aplink galvą.
+    Hd = HEAD[kname]
+    hz0 = Hd[:, 2].min()
+    hc = np.array([Hd[:, 0].mean(), Hd[:, 1].mean() + 0.055, (Hd[:, 2].max() + hz0) / 2 - 0.045])
+    rx = (Hd[:, 0].max() - Hd[:, 0].min()) / 2 + 0.045
+    ry = (Hd[:, 1].max() - Hd[:, 1].min()) / 2 + 0.05
+    rz = (Hd[:, 2].max() - hz0) / 2 + 0.035
+    EDGE = math.radians(118)                                  # už šio kampo (priekyje) – anga veidui
     rows = []
     for i in neck:
         p = P[i]
         u = unit(np.array([p[0] - c[0], p[1] - c[1], 0]))
-        side = abs(u[0])                                          # 1 – šonas (ant peties), 0 – priekis/nugara
-        wb = float(np.clip(0.45 + 0.55 * u[1], 0, 1)) ** 1.4     # 1 – nugara, 0 – priekis
-        L = 0.05 + 0.26 * wb
-        nrm = unit(u * (1 - 0.7 * side) + UP * 0.9 * side)       # kur „išorė“: nugarai – atgal, pečiui – aukštyn
+        a = math.atan2(u[0], u[1])                            # 0 – nugara, ±π – priekis
+        full = smooth01((EDGE - abs(a)) / math.radians(14))  # 1 – pilnas kapišonas, 0 – tik apykaklė
+        lam0 = math.asin(float(np.clip((p[2] - hc[2]) / rz, -1, 1)))
+        lam1 = lam0 + (math.pi / 2 * 0.97 - lam0) * full
         row = []
-        prev = p
         for j in range(HOOD_R + 1):
             t = j / HOOD_R
-            if t <= 0.2:
-                q = p + UP * (0.022 * math.sin(math.pi / 2 * t / 0.2)) + u * (0.006 + 0.03 * t / 0.2)
-            else:
-                s = (t - 0.2) / 0.8
-                g = p + UP * (0.022 - s * L * (1 - 0.6 * side)) + u * (0.03 + s * L * side * 0.8)
-                g[0] = c[0] + (g[0] - c[0]) * (1 + 0.6 * wb * math.sin(math.pi / 2 * s))   # nugaroje platėja
-                puff = 0.014 + 0.04 * wb * math.sin(math.pi * min(1.0, s * 1.1)) ** 0.7 + 0.01 * (1 - s)
-                q = onto(g, nrm, prev - UP * 0.015, puff)
-            row.append(q); prev = q
+            lam = lam0 + (lam1 - lam0) * t
+            e = hc + np.array([rx * math.cos(lam) * math.sin(a), ry * math.cos(lam) * math.cos(a), rz * math.sin(lam)])
+            w = smooth01(t / 0.25) * full
+            collar = p + UP * (0.02 * smooth01(t * 3)) + u * (0.008 + 0.018 * smooth01(t * 3))
+            q = collar * (1 - w) + e * w
+            row.append(q)
         rows.append(row)
     pts += [q for row in rows for q in row]
     # Kengūros kišenė priekyje: išgaubta per vidurį, su uždarais viršaus ir apačios kraštais
@@ -85,7 +99,7 @@ def build(P):
         else:
             v = (jv - 1) / (PV - 1); lift = None
         zz = hem + 0.065 + v * 0.18
-        hw = 0.15 - 0.05 * v
+        hw = 0.16 - 0.075 * (1 - math.cos(v * math.pi / 2))      # lenkti šonai, kaip tikroje kengūros kišenėje
         for ju in range(PU):
             uu = ju / (PU - 1)
             x = cz[0] + (uu - 0.5) * 2 * hw
@@ -110,7 +124,7 @@ def build(P):
     return np.array(pts, np.float32)
 
 # --- Topologija (sukuriama vieną kartą pagal bazinę formą) ---
-basis_pts = build(B)
+basis_pts = build(B, "Basis")
 bm = bmesh.new(); bm.from_mesh(me)
 new = [bm.verts.new(Vector(p)) for p in basis_pts]
 bm.verts.ensure_lookup_table()
@@ -152,7 +166,7 @@ new_idx_start = nv                   # nauji taškai po senųjų (be suvirintų 
 keep = np.ones(len(basis_pts), bool)
 keep[[a * W for a in range(NN)]] = False
 for k in kb:
-    pts = build(K[k.name])[keep]
+    pts = build(K[k.name], k.name)[keep]
     full = np.empty(n_all * 3, np.float32); k.data.foreach_get("co", full); full = full.reshape(-1, 3)
     full[nv:] = pts
     k.data.foreach_set("co", full.ravel())
