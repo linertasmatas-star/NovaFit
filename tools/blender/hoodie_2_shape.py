@@ -161,7 +161,9 @@ def shape(P):
     dreal = ((Q - P) * n).sum(1)                         # tikra oda (speneliai) – bent 4 mm, kad nekyšotų
     # liemenyje (apvalkale) nuo tikros odos užtenka 1,5 mm – kitaip ant krūtinės vėl atsiranda guzeliai
     need_real = 0.004 * (1 - SHELL) + 0.0015 * SHELL
-    push = np.maximum(np.maximum(0.006 - dn, need_real - dreal), 0)
+    # ties klubais – bent 2,4 cm nuo kūno, kad pro apačią nekyšotų džinsų juosta, kilpos ir saga
+    need_sm = 0.006 + 0.018 * smoothstep(1.00, 0.96, z) * torso
+    push = np.maximum(np.maximum(need_sm - dn, need_real - dreal), 0)
     for _ in range(10):                                  # stūmimą paskleidžiam plačiai ir švelniai
         push = np.maximum(push, 0.85 * neighbor_avg(push[:, None])[:, 0])
     for _ in range(4):
