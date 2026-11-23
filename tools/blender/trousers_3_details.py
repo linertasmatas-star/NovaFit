@@ -86,17 +86,27 @@ def strip(curve, side, off, half=0.0045):
 
 HEM = float(B[:, 2].min())
 
-# --- Lygintas kantas: tiesi briauna per kiekvienos klešnės priekio vidurį (nuo klubų iki apačios) ---
+# --- Lygintas kantas: tiesi briauna per kiekvienos klešnės priekio vidurį ---
+# Klešnės kraštai randami spinduliais iš šono (išorinis) ir iš tarpo tarp kojų (vidinis).
+# Žemiau tarpkojo kantas eina klešnės viduriu (tiesė), aukščiau – tiesiai į viršų iki juosmens.
+def leg_center(s, z):
+    yc = float(np.median(B[(np.abs(B[:, 2] - z) < 0.02) & (B[:, 0] * s > 0.02), 1]))
+    out_hit = bvh.ray_cast(Vector((s * 1.0, yc, z)), Vector((-s, 0, 0)))[0]
+    in_hit = bvh.ray_cast(Vector((0.0, yc, z)), Vector((s, 0, 0)))[0]
+    if out_hit is None or in_hit is None: return None
+    return 0.5 * (out_hit.x + in_hit.x)
 for s in (-1, 1):
-    zs = np.linspace(HEM + 0.03, CROTCH - 0.04, 16)
-    cx = []
-    for z in zs:
-        m = (np.abs(B[:, 2] - z) < 0.008) & (B[:, 0] * s > 0.004)
-        cx.append(0.5 * (B[m, 0].min() + B[m, 0].max()))
-    a, b = np.polyfit(zs, cx, 1)                       # kanto linija – tiesė x(z)
+    zs, cx = [], []
+    for z in np.linspace(HEM + 0.03, CROTCH - 0.05, 20):
+        c = leg_center(s, z)
+        if c is not None: zs.append(z); cx.append(c)
+    a, b = np.polyfit(zs, cx, 1)
+    z_knee_top = CROTCH - 0.03
     z_top, z_bot = TOP - 0.085, HEM + 0.012
-    curve = [(a * z + b, z) for z in np.linspace(z_top, z_bot, 40)]
-    strip(curve, "front", 0.0024, half=0.0022)
+    x_up = a * z_knee_top + b
+    curve = [(x_up, z) for z in np.linspace(z_top, z_knee_top, 8, endpoint=False)]
+    curve += [(a * z + b, z) for z in np.linspace(z_knee_top, z_bot, 34)]
+    strip(curve, "front", 0.0016, half=0.0018)
 
 # --- Įstrižos priekinės kišenės (tiesi linija nuo juosmens į šoną) ---
 for s in (-1, 1):
