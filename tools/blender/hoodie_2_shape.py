@@ -266,8 +266,22 @@ def shape(P):
     return Q
 
 out = {}
+# Formos sumaišomos tiesiškai (pvz. „vyras + 60 % stambesnis“), todėl krūtinėje/pilve kiekvienos formos skirtumas
+# nuo bazinės išlyginamas erdviškai – kitaip sumaišius smulkūs skirtumai virsta guzeliais
+Qb = shape(getco(kb["Basis"]))
+tiB = np.where(torso)[0]
+TB = B[tiB]
+WB = np.zeros((len(tiB), len(tiB)), np.float32)
+for a0 in range(0, len(tiB), 400):
+    blk = TB[a0:a0 + 400]
+    WB[a0:a0 + 400] = np.exp(-((blk[:, None, :] - TB[None, :, :]) ** 2).sum(2) / (2 * 0.025 ** 2))
+WB /= WB.sum(1, keepdims=True)
+dmask = (SHELL * smoothstep(0.92, 0.98, z) * smoothstep(1.32, 1.27, z))[tiB][:, None]
 for k in kb:
-    Q = shape(getco(k))
+    Q = Qb.copy() if k.name == "Basis" else shape(getco(k))
+    if k.name != "Basis":
+        dl = Q[tiB] - Qb[tiB]
+        Q[tiB] = Qb[tiB] + dl * (1 - dmask) + (WB @ dl) * dmask
     setco(k, Q)
     if k.name == "Basis":
         me.vertices.foreach_set("co", Q.astype(np.float32).ravel())
