@@ -146,7 +146,20 @@ def shape(P):
     for _ in range(2):
         D = np.maximum.reduce([D, np.roll(D, 1, 1), np.roll(D, -1, 1),
                                np.vstack([D[1:], D[-1:]]), np.vstack([D[:1], D[:-1]])])
-    if globals().get("TENT", 0): E = np.maximum(E, 0.5 * (E + D))
+    # Krūtinė: audinys turi dengti TIKRĄ kūną (su viršūnėmis), bet būti lygus – „max, tada lyginti“ erdviniame tinklelyje
+    Ereq[Ereq == 0] = E[Ereq == 0]
+    def gsm(A):
+        A2 = (np.roll(A, 1, 1) + 2 * A + np.roll(A, -1, 1)) / 4
+        A2[1:-1] = (A2[:-2] + 2 * A2[1:-1] + A2[2:]) / 4
+        return A2
+    T_ = np.maximum(E, Ereq)
+    for _ in range(30):
+        T_ = np.maximum(Ereq, gsm(T_))
+    for _ in range(2):
+        T_ = gsm(T_)
+    zrow = hem_z + (np.arange(NZ) + 0.5) * 0.015
+    cw = (smoothstep(1.00, 1.06, zrow) * smoothstep(1.34, 1.28, zrow))[:, None]
+    E = E * (1 - cw) + np.maximum(E, T_) * cw
     for _ in range(4):                        # lyginam aplink ir aukštyn
         E = (np.roll(E, 1, 1) + 2 * E + np.roll(E, -1, 1)) / 4
         E[1:-1] = (E[:-2] + 2 * E[1:-1] + E[2:]) / 4
