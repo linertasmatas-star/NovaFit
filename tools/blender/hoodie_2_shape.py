@@ -146,7 +146,7 @@ def shape(P):
     # Apvalkalo taškų kryptis ir aukštis – iš išlyginto kūno (ne iš odos normalių: ties speneliu jos „išsiskleidžia“)
     sd = Sm[:, :2] - c
     sr = np.linalg.norm(sd, axis=1) + 1e-9
-    shellQ = np.column_stack([c + sd / sr[:, None] * np.maximum(shell_r, r + 0.006)[:, None], Sm[:, 2]])
+    shellQ = np.column_stack([c + sd / sr[:, None] * np.maximum(shell_r, r + 0.006)[:, None], P[:, 2]])
     Q = Q * (1 - SHELL[:, None]) + shellQ * SHELL[:, None]
     bump(Sm, "1_Sm"); bump(Q, "2_shell")
     # 3) Audinio paviršių išlyginam pačiu (tankus tinklas ties speneliais nebeduoda „žiedų“)
