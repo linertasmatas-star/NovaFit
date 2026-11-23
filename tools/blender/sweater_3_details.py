@@ -56,6 +56,7 @@ for a in range(NN):
     b = (a + 1) % NN
     for j in range(NR - 1):
         bm.faces.new((V(a, j), V(b, j), V(b, j + 1), V(a, j + 1))).smooth = True
+bm.verts.ensure_lookup_table()
 weld = {new[a * NR]: bm.verts[int(neck[a])] for a in range(NN)}      # prisiuvam prie kaklo krašto
 bmesh.ops.weld_verts(bm, targetmap=weld)
 bm.to_mesh(me); bm.free()
