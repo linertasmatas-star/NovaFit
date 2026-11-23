@@ -34,6 +34,7 @@ CY = float(np.median(B[hip, 1]))                   # klubų centras (priekis–n
 bvh = BVHTree.FromPolygons([Vector(p) for p in B], tri.tolist())
 
 A_tri, A_bar, A_off = [], [], []
+CREASE, CUR_CREASE = [], None      # kanto taškai: skaičiuojami kiekvienai formai atskirai
 faces = []
 
 def bary(p, a, b, c):
@@ -50,6 +51,7 @@ def anchor(origin, direction, off):
         o = np.array(origin); loc, nrm, idx, dist = bvh.find_nearest(Vector((o[0] * 0.5, CY, o[2])))
     t = tri[idx]
     A_tri.append(t); A_bar.append(bary(np.array(loc), B[t[0]], B[t[1]], B[t[2]])); A_off.append(off)
+    if CUR_CREASE is not None: CREASE.append((len(A_tri) - 1, CUR_CREASE, origin[0], origin[2], off))
     return len(A_tri) - 1
 
 def panel(pts, side, off, wrap=False, edge=0.0008):
@@ -89,24 +91,38 @@ HEM = float(B[:, 2].min())
 # --- Lygintas kantas: tiesi briauna per kiekvienos klešnės priekio vidurį ---
 # Klešnės kraštai randami spinduliais iš šono (išorinis) ir iš tarpo tarp kojų (vidinis).
 # Žemiau tarpkojo kantas eina klešnės viduriu (tiesė), aukščiau – tiesiai į viršų iki juosmens.
-def leg_center(s, z):
-    yc = float(np.median(B[(np.abs(B[:, 2] - z) < 0.02) & (B[:, 0] * s > 0.02), 1]))
-    out_hit = bvh.ray_cast(Vector((s * 1.0, yc, z)), Vector((-s, 0, 0)))[0]
-    in_hit = bvh.ray_cast(Vector((0.0, yc, z)), Vector((s, 0, 0)))[0]
-    if out_hit is None or in_hit is None: return None
-    return 0.5 * (out_hit.x + in_hit.x)
-for s in (-1, 1):
+# Kiekviena kūno forma turi savo klešnių ašį, todėl kanto taškai vėliau perskaičiuojami kiekvienai formai.
+def levels(P):
+    top, hem = float(P[:, 2].max()), float(P[:, 2].min())
+    mid = np.abs(P[:, 0]) < 0.012
+    return hem, float(P[mid, 2].min()), top
+def crease_line(P, tree, s):
+    hem, crotch, top = levels(P)
     zs, cx = [], []
-    for z in np.linspace(HEM + 0.03, CROTCH - 0.05, 20):
-        c = leg_center(s, z)
-        if c is not None: zs.append(z); cx.append(c)
+    for z in np.linspace(hem + 0.03, crotch - 0.05, 20):
+        yc = float(np.median(P[(np.abs(P[:, 2] - z) < 0.02) & (P[:, 0] * s > 0.02), 1]))
+        o_hit = tree.ray_cast(Vector((s * 1.0, yc, z)), Vector((-s, 0, 0)))[0]
+        i_hit = tree.ray_cast(Vector((0.0, yc, z)), Vector((s, 0, 0)))[0]
+        if o_hit is not None and i_hit is not None: zs.append(z); cx.append(0.5 * (o_hit.x + i_hit.x))
     a, b = np.polyfit(zs, cx, 1)
-    z_knee_top = CROTCH - 0.03
+    zk = crotch - 0.03
+    return dict(a=a, b=b, zk=zk, hem=hem, crotch=crotch, top=top)
+def line_x(L, z):
+    return L["a"] * min(z, L["zk"]) + L["b"]
+def map_z(z, LB, LK):
+    # aukštis perskaičiuojamas pagal apačią, tarpkojį ir juosmenį (figūrų ūgis skiriasi)
+    if z <= LB["crotch"]:
+        t = (z - LB["hem"]) / (LB["crotch"] - LB["hem"]); return LK["hem"] + t * (LK["crotch"] - LK["hem"])
+    t = (z - LB["crotch"]) / (LB["top"] - LB["crotch"]); return LK["crotch"] + t * (LK["top"] - LK["crotch"])
+LINE_B = {s: crease_line(B, bvh, s) for s in (-1, 1)}
+for s in (-1, 1):
+    L = LINE_B[s]
     z_top, z_bot = TOP - 0.085, HEM + 0.012
-    x_up = a * z_knee_top + b
-    curve = [(x_up, z) for z in np.linspace(z_top, z_knee_top, 8, endpoint=False)]
-    curve += [(a * z + b, z) for z in np.linspace(z_knee_top, z_bot, 34)]
+    curve = [(line_x(L, z), z) for z in np.linspace(z_top, L["zk"], 8, endpoint=False)]
+    curve += [(line_x(L, z), z) for z in np.linspace(L["zk"], z_bot, 34)]
+    CUR_CREASE = s
     strip(curve, "front", 0.0016, half=0.0018)
+    CUR_CREASE = None
 
 # --- Įstrižos priekinės kišenės (tiesi linija nuo juosmens į šoną) ---
 for s in (-1, 1):
@@ -151,7 +167,17 @@ def place(P):
     pos = (P[A_tri] * A_bar[:, :, None]).sum(1)
     nr = (N[A_tri] * A_bar[:, :, None]).sum(1)
     nr /= np.linalg.norm(nr, axis=1, keepdims=True) + 1e-9
-    return pos + nr * A_off[:, None]
+    out = pos + nr * A_off[:, None]
+    # kantas: šios formos klešnės ašis, spindulys iš priekio
+    tree = BVHTree.FromPolygons([Vector(p) for p in P], tri.tolist())
+    LK = {s: crease_line(P, tree, s) for s in (-1, 1)}
+    for i, s, x, z, off in CREASE:
+        LB = LINE_B[s]
+        zk = map_z(z, LB, LK[s])
+        xk = line_x(LK[s], zk) + (x - line_x(LB, z))
+        loc, nrm, _, _ = tree.ray_cast(Vector((xk, -1.0, zk)), Vector((0, 1, 0)))
+        if loc is not None: out[i] = np.array(loc) + np.array(nrm) * off
+    return out
 
 bm = bmesh.new(); bm.from_mesh(me)
 new = [bm.verts.new(Vector(p)) for p in place(B)]
