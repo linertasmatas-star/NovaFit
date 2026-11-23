@@ -146,9 +146,12 @@ def shape(P):
     ref = P * (1 - w) + Sm * w
     nr = vnormals(ref)
     dn = ((Q - ref) * nr).sum(1)
-    push = np.maximum(0.006 - dn, 0)
-    for _ in range(6):                                   # stūmimą paskleidžiam plačiau
-        push = np.maximum(push, 0.8 * neighbor_avg(push[:, None])[:, 0])
+    dreal = ((Q - P) * n).sum(1)                         # tikra oda (speneliai) – bent 4 mm, kad nekyšotų
+    push = np.maximum(np.maximum(0.006 - dn, 0.004 - dreal), 0)
+    for _ in range(10):                                  # stūmimą paskleidžiam plačiai ir švelniai
+        push = np.maximum(push, 0.85 * neighbor_avg(push[:, None])[:, 0])
+    for _ in range(4):
+        push = np.maximum(push, neighbor_avg(push[:, None])[:, 0])
     Q += nr * push[:, None]
     return Q
 
