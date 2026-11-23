@@ -79,9 +79,13 @@ def shape(P):
     lift = np.maximum(((S - P) * n).sum(1), 0)
     Q = P + n * (thick + lift)[:, None]
     # 2) Liemuo: kiekviename aukštyje – lygi apimtis (apvalkalas), o ne kūno forma.
+    # Apvalkalas skaičiuojamas pagal stipriai išlygintą kūną – speneliai ir kitos smulkmenos nebeturi įtakos
+    Sm = P.copy()
+    for _ in range(120):
+        Sm += 0.5 * (neighbor_avg(Sm) - Sm)
     c = P[CHEST, :2].mean(0)
     d = P[:, :2] - c
-    r = np.linalg.norm(d, axis=1) + 1e-9
+    r = np.linalg.norm(Sm[:, :2] - c, axis=1) + 1e-9
     th = np.arctan2(d[:, 1], d[:, 0])
     bi = ((th + math.pi) / (2 * math.pi) * NB).astype(int) % NB
     zb = ((z - hem_z) / 0.015).astype(int)
@@ -92,7 +96,7 @@ def shape(P):
         for jb in range(NB):
             sel = mk & ((bi == jb) | (bi == (jb + 1) % NB) | (bi == (jb - 1) % NB))
             if sel.sum() >= 2:
-                E[k, jb] = np.percentile(r[sel], 80)
+                E[k, jb] = np.percentile(r[sel], 75)
     for _ in range(NB):                       # tuščios kryptys – iš kaimynų
         e0 = E == 0
         if not e0.any(): break
@@ -102,7 +106,7 @@ def shape(P):
         E = (np.roll(E, 1, 1) + 2 * E + np.roll(E, -1, 1)) / 4
         E[1:-1] = (E[:-2] + 2 * E[1:-1] + E[2:]) / 4
     # Žemiau krūtinės krenta tiesiai: ne siauriau už plačiausią vietą virš jos (krūtinė, pilvas, sėdmenys)
-    kc = int((1.20 - hem_z) / 0.015)
+    kc = int((1.25 - hem_z) / 0.015)                     # nuo krūtinės viršūnės – be „lentynos“ po krūtine
     top = E[min(kc, NZ - 1)].copy()
     for k in range(min(kc, NZ - 1), -1, -1):
         top = np.maximum(top, E[k])
