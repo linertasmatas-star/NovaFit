@@ -72,7 +72,7 @@ leg = part == 2
 KNEE_Z = float(np.median(z0[leg & (np.abs(apos - 0.5) < 0.03)]))
 TUBE = smoothstep(CROTCH + 0.01, CROTCH - 0.05, z0)            # 1 – atskiros kojos, 0 – klubai
 BAND = smoothstep(TOP - 0.045, TOP - 0.035, z0)                 # juosmens juosta
-thick = 0.010 + 0.0035 * BAND                                   # be atlenkimo apačioje
+thick = 0.008 + 0.0035 * BAND                                   # be atlenkimo apačioje
 NB, DZ = 32, 0.015
 
 def shape(P):
@@ -124,11 +124,11 @@ def shape(P):
             E = (np.roll(E, 1, 1) + 2 * E + np.roll(E, -1, 1)) / 4
             E[1:-1] = (E[:-2] + 2 * E[1:-1] + E[2:]) / 4
         # truputį laisviau nei džinsai
-        E = E + 0.003
+        E = E + 0.001
         # nuo kelio žemyn – tiesiai, apačioje švelniai siaurėja (iki 92 % kelio), bet ne arčiau nei 1 cm nuo kojos
         knee = E[kk].copy()
-        for k in range(kk, -1, -1):
-            E[k] = np.maximum(E[k] + 0.01, knee * (1.0 - 0.08 * (kk - k) / kk))
+        for k in range(kk - 1, -1, -1):
+            E[k] = np.maximum(E[k] + 0.005, knee * (1.0 - 0.08 * (kk - k) / kk))
         # šlaunis: tiesi linija nuo tarpkojo iki kelio (audinys krenta, nesek kūno formos)
         kc = int((CROTCH - HEM) / DZ); kc = min(max(kc, kk + 1), NZ - 1)
         for k in range(kk + 1, kc + 1):
