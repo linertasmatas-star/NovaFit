@@ -159,6 +159,17 @@ def shape(P):
     sr = np.linalg.norm(sd, axis=1) + 1e-9
     shellQ = np.column_stack([c + sd / sr[:, None] * np.maximum(shell_r, r + 0.006)[:, None], P[:, 2]])
     Q = Q * (1 - SHELL[:, None]) + shellQ * SHELL[:, None]
+    # Audinys užsitempia virš tikro kūno lygiu kupolu: spindulys ≥ odos + 5 mm, bet išlygintas (be smaigalių)
+    qd = Q[:, :2] - c
+    qs = np.linalg.norm(qd, axis=1) + 1e-9
+    req = rP + 0.005
+    sr_ = qs.copy()
+    ws = SHELL
+    for _ in range(60):
+        sr_ = np.maximum(sr_, req * ws + sr_ * (1 - ws))
+        sr_ = sr_ + ws * 0.5 * (neighbor_avg(sr_[:, None])[:, 0] - sr_)
+    sr_ = np.maximum(sr_, (req - 0.002) * ws + sr_ * (1 - ws))
+    Q[:, :2] = c + qd / qs[:, None] * sr_[:, None]
     bump(Sm, "1_Sm"); bump(Q, "2_shell")
     # 3) Audinio paviršių išlyginam pačiu (tankus tinklas ties speneliais nebeduoda „žiedų“)
     w = SHELL[:, None]
@@ -175,7 +186,9 @@ def shape(P):
     # liemenyje (apvalkale) nuo tikros odos užtenka 1,5 mm – kitaip ant krūtinės vėl atsiranda guzeliai
     need_real = 0.004 * (1 - SHELL)
     # ties klubais – bent 2,4 cm nuo kūno, kad pro apačią nekyšotų džinsų juosta, kilpos ir saga
-    need_sm = 0.006 + 0.018 * smoothstep(1.00, 0.96, z) * torso
+    hipb = smoothstep(1.00, 0.96, z) * torso
+    chest_shell = SHELL * (1 - hipb)                      # krūtinėje atstumą jau užtikrino kupolas
+    need_sm = (0.006 + 0.018 * hipb) * (1 - chest_shell)
     push = np.maximum(np.maximum(need_sm - dn, need_real - dreal), 0)
     for _ in range(10):                                  # stūmimą paskleidžiam plačiai ir švelniai
         push = np.maximum(push, 0.85 * neighbor_avg(push[:, None])[:, 0])
