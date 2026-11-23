@@ -1,0 +1,164 @@
+"""NovaFit džinsai Blenderyje, 2 žingsnis: forma kiekvienai kūno formai.
+
+Klubai – išlyginta kūno forma (be įdubimų), kojos – lygūs „vamzdžiai“: šlaunis pagal kūną,
+nuo kelio žemyn tiesiai (straight fit), apačioje šiek tiek platėja. Juosmens juosta ir apačios atlenkimas storesni.
+Pradeda nuo „jeans_src“ (1 žingsnio rezultatas), todėl galima leisti daug kartų.
+"""
+import bpy, numpy as np, math
+
+src = bpy.data.objects.get("jeans_src")
+cur = bpy.data.objects.get("jeans")
+if src is None:
+    src = cur.copy(); src.data = cur.data.copy(); src.name = "jeans_src"
+    bpy.context.collection.objects.link(src)
+src.hide_set(True); src.hide_render = True
+if cur is not None:
+    bpy.data.objects.remove(cur, do_unlink=True)
+jn = src.copy(); jn.data = src.data.copy(); jn.name = "jeans"; jn.data.name = "jeans"
+bpy.context.collection.objects.link(jn)
+jn.hide_set(False)
+me = jn.data
+kb = me.shape_keys.key_blocks
+nv = len(me.vertices)
+
+def attr(name, dtype):
+    a = np.empty(nv, dtype); me.attributes[name].data.foreach_get("value", a); return a
+part = attr("part", np.int32)          # 0 liemuo, 2 koja
+apos = attr("apos", np.float32)        # kojoje: 0 klubas … 0,5 kelis … 1 kulkšnis
+
+me.calc_loop_triangles()
+tri = np.empty(len(me.loop_triangles) * 3, np.int32)
+me.loop_triangles.foreach_get("vertices", tri); tri = tri.reshape(-1, 3)
+edges = np.empty(len(me.edges) * 2, np.int32); me.edges.foreach_get("vertices", edges); edges = edges.reshape(-1, 2)
+deg = np.bincount(edges.ravel(), minlength=nv).astype(np.float32); deg[deg == 0] = 1
+# kraštų taškai (juosmuo, apačia) – jų nelyginam, kad kraštai liktų tiesūs
+cnt = {}
+for t in tri:
+    for a, b in ((t[0], t[1]), (t[1], t[2]), (t[2], t[0])):
+        k = (min(a, b), max(a, b)); cnt[k] = cnt.get(k, 0) + 1
+rim = np.zeros(nv, bool)
+for (a, b), c in cnt.items():
+    if c == 1: rim[a] = rim[b] = True
+
+def getco(k):
+    a = np.empty(nv * 3, np.float32); k.data.foreach_get("co", a); return a.reshape(-1, 3)
+def setco(k, P):
+    k.data.foreach_set("co", P.astype(np.float32).ravel())
+def vnormals(P):
+    fn = np.cross(P[tri[:, 1]] - P[tri[:, 0]], P[tri[:, 2]] - P[tri[:, 0]])
+    n = np.zeros_like(P)
+    for j in range(3): np.add.at(n, tri[:, j], fn)
+    return n / (np.linalg.norm(n, axis=1, keepdims=True) + 1e-9)
+def neighbor_avg(P):
+    acc = np.zeros_like(P)
+    np.add.at(acc, edges[:, 0], P[edges[:, 1]]); np.add.at(acc, edges[:, 1], P[edges[:, 0]])
+    return acc / deg[:, None]
+def smoothstep(a, b, x):
+    t = np.clip((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
+
+B = getco(kb["Basis"])
+z0 = B[:, 2]
+TOP = z0.max()
+HEM = z0.min()
+CROTCH = z0[np.abs(B[:, 0]) < 0.012].min()                     # tarpkojis (viduryje žemiausias taškas)
+leg = part == 2
+KNEE_Z = float(np.median(z0[leg & (np.abs(apos - 0.5) < 0.03)]))
+TUBE = smoothstep(CROTCH + 0.01, CROTCH - 0.05, z0)            # 1 – atskiros kojos, 0 – klubai
+BAND = smoothstep(TOP - 0.045, TOP - 0.035, z0)                 # juosmens juosta
+CUFF = smoothstep(HEM + 0.025, HEM + 0.018, z0)                 # apačios atlenkimas
+
+thick = 0.009 + 0.0035 * BAND + 0.002 * CUFF
+NB, DZ = 32, 0.015
+
+def shape(P):
+    n = vnormals(P)
+    Sm = P.copy()                                   # išlygintas kūnas (be smulkmenų, tūris lieka)
+    for it in range(160):
+        Sm += (0.5 if it % 2 == 0 else -0.53) * (neighbor_avg(Sm) - Sm)
+    lift = np.maximum(((Sm - P) * n).sum(1), 0)
+    Q = P + n * (thick + lift)[:, None]
+    z = P[:, 2]
+    # --- Kojos: kiekvienai kojai – lygus vamzdis aplink jos ašį ---
+    for s in (-1, 1):
+        L = (B[:, 0] * s > 0) & (z0 < CROTCH + 0.03)
+        if not L.any(): continue
+        zb = ((z0 - HEM) / DZ).astype(int)                 # juostos pagal bazinę figūrą (stabilu visoms formoms)
+        NZ = zb[L].max() + 2
+        C = np.zeros((NZ, 2))
+        for k in range(NZ):
+            m = L & (zb == k)
+            C[k] = np.median(Sm[m, :2], 0) if m.sum() >= 3 else np.nan
+        ok = ~np.isnan(C[:, 0])
+        idx = np.arange(NZ)
+        for j in range(2): C[:, j] = np.interp(idx, idx[ok], C[ok, j])
+        for _ in range(6): C[1:-1] = (C[:-2] + 2 * C[1:-1] + C[2:]) / 4
+        kk = int((KNEE_Z - HEM) / DZ)
+        kk = min(max(kk, 1), NZ - 1)
+        # nuo kelio žemyn ašis tiesi (linija nuo kelio iki kulkšnies)
+        for k in range(kk):
+            C[k] = C[0] + (C[kk] - C[0]) * k / kk
+        cz = C[np.clip(zb, 0, NZ - 1)]
+        d = Sm[:, :2] - cz
+        r = np.linalg.norm(d, axis=1) + 1e-9
+        th = np.arctan2(d[:, 1], d[:, 0])
+        bi = ((th + math.pi) / (2 * math.pi) * NB).astype(int) % NB
+        E = np.zeros((NZ, NB))
+        for k in range(NZ):
+            mk = L & (zb == k)
+            for jb in range(NB):
+                sel = mk & ((bi == jb) | (bi == (jb + 1) % NB) | (bi == (jb - 1) % NB))
+                if sel.sum() >= 2: E[k, jb] = np.percentile(r[sel], 95)
+        for _ in range(NB):
+            e0 = E == 0
+            if not e0.any(): break
+            nb = np.maximum(np.roll(E, 1, 1), np.roll(E, -1, 1))
+            E[e0] = nb[e0]
+        # vamzdis apvalesnis: kiekviename aukštyje artinam prie vidutinio spindulio
+        E = 0.55 * E + 0.45 * E.mean(1, keepdims=True)
+        for _ in range(3):
+            E = (np.roll(E, 1, 1) + 2 * E + np.roll(E, -1, 1)) / 4
+            E[1:-1] = (E[:-2] + 2 * E[1:-1] + E[2:]) / 4
+        # nuo kelio žemyn – ne siauriau už kelį (blauzda nesimato), apačioje šiek tiek platėja
+        knee = E[kk].copy()
+        for k in range(kk, -1, -1):
+            knee = np.maximum(knee, E[k])
+            E[k] = np.maximum(E[k], knee * (1.0 + 0.05 * (kk - k) / kk))
+        # šlaunis švelniai siaurėja į kelį (be „kelnių“ guzų virš kelio)
+        for k in range(kk + 1, NZ):
+            E[k] = np.maximum(E[k], E[k - 1])
+        fz = np.clip((z0 - HEM) / DZ, 0, NZ - 1.001)
+        fb = (th + math.pi) / (2 * math.pi) * NB - 0.5
+        k0 = np.floor(fz).astype(int); tz = fz - k0
+        b0 = np.floor(fb).astype(int); tb = fb - b0
+        b0m, b1m = b0 % NB, (b0 + 1) % NB
+        k1 = np.minimum(k0 + 1, NZ - 1)
+        env = ((E[k0, b0m] * (1 - tb) + E[k0, b1m] * tb) * (1 - tz) + (E[k1, b0m] * (1 - tb) + E[k1, b1m] * tb) * tz)
+        new_r = np.maximum(env + thick, r + 0.006)
+        w = TUBE * L
+        target = cz + d / r[:, None] * new_r[:, None]
+        Q[:, :2] = Q[:, :2] * (1 - w[:, None]) + target * w[:, None]
+    # --- Audinio paviršių išlyginam (be kraštų) ---
+    wq = (~rim).astype(np.float32)[:, None] * 0.9
+    for it in range(60):
+        Q += wq * (0.5 if it % 2 == 0 else -0.52) * (neighbor_avg(Q) - Q)
+    # --- Niekur arčiau nei 4–6 mm nuo odos (stūmimas paskleidžiamas plačiai) ---
+    nr = vnormals(Sm)
+    dn = ((Q - Sm) * nr).sum(1)
+    dreal = ((Q - P) * n).sum(1)
+    push = np.maximum(np.maximum(0.006 - dn, 0.004 - dreal), 0)
+    for _ in range(10):
+        push = np.maximum(push, 0.85 * neighbor_avg(push[:, None])[:, 0])
+    for _ in range(4):
+        push = np.maximum(push, neighbor_avg(push[:, None])[:, 0])
+    Q += nr * push[:, None]
+    return Q
+
+for k in kb:
+    Q = shape(getco(k))
+    setco(k, Q)
+    if k.name == "Basis":
+        me.vertices.foreach_set("co", Q.astype(np.float32).ravel())
+me.update()
+jn.color = (0.24, 0.35, 0.5, 1)
+result = {"verts": nv, "top": round(float(TOP), 3), "crotch": round(float(CROTCH), 3),
+          "knee": round(float(KNEE_Z), 3), "hem": round(float(HEM), 3)}

@@ -1,5 +1,6 @@
 """NovaFit džemperis Blenderyje, 1 žingsnis: kūno sričių duomenys ir džemperio pagrindas (apkirptas kūnas su visomis formomis)."""
 import bpy, bmesh, base64, zlib, numpy as np
+NAME = globals().get("NAME", "hoodie")   # tas pats žingsnis tinka ir kitiems drabužiams (pvz. NAME="jeans")
 raw = np.frombuffer(zlib.decompress(base64.b64decode(BLOB)), np.uint8)   # BLOB pateikia paleidėjas (hoodie_data.b64)
 n = 13380
 f = np.frombuffer(raw[:2*n].tobytes(), np.float16).astype(np.float32)
@@ -15,9 +16,12 @@ for name, data, kind in (("hd_f", f, "FLOAT"), ("part", part, "INT"), ("apos", a
 for o in bpy.data.objects:
     if o.name.startswith("bell-"): o.hide_set(True); o.hide_render = True
 # Džemperis = kūno kopija (su visomis formomis), apkirpta pagal lauką
-old = bpy.data.objects.get("hoodie")
+for nm in (NAME, NAME + "_src"):
+    o = bpy.data.objects.get(nm)
+    if o: bpy.data.objects.remove(o, do_unlink=True)
+old = None
 if old: bpy.data.objects.remove(old, do_unlink=True)
-hd = av.copy(); hd.data = me.copy(); hd.name = "hoodie"; hd.data.name = "hoodie"
+hd = av.copy(); hd.data = me.copy(); hd.name = NAME; hd.data.name = NAME
 bpy.context.collection.objects.link(hd)
 bm = bmesh.new(); bm.from_mesh(hd.data)
 fl = bm.verts.layers.float.get("hd_f")
