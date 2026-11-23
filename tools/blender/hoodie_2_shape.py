@@ -121,7 +121,7 @@ def shape(P):
     for _ in range(2):
         D = np.maximum.reduce([D, np.roll(D, 1, 1), np.roll(D, -1, 1),
                                np.vstack([D[1:], D[-1:]]), np.vstack([D[:1], D[:-1]])])
-    E = np.maximum(E, 0.5 * (E + D))                     # tik pusė – kad nebūtų gumbų
+    if globals().get("TENT", 0): E = np.maximum(E, 0.5 * (E + D))
     for _ in range(4):                        # lyginam aplink ir aukštyn
         E = (np.roll(E, 1, 1) + 2 * E + np.roll(E, -1, 1)) / 4
         E[1:-1] = (E[:-2] + 2 * E[1:-1] + E[2:]) / 4
