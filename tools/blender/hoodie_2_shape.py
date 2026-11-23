@@ -211,6 +211,17 @@ def shape(P):
         Q += w * (0.5 if it % 2 == 0 else -0.52) * (neighbor_avg(Q) - Q)
     for _ in range(25):                                  # papildomai – paprastas lyginimas (nuapvalina krūtinės viršūnes)
         Q += w * 0.5 * (neighbor_avg(Q) - Q)
+    # Erdvinis audinio išlyginimas krūtinėje ir pilve (~1,5 cm): tankiame tinkle mažyčiai trikampiai susilygina
+    Tq = Q[ti]
+    vaq = va[ti]
+    G = Tq.copy()
+    for a0 in range(0, len(ti), 400):
+        blk = Tq[a0:a0 + 400]
+        d2 = ((blk[:, None, :] - Tq[None, :, :]) ** 2).sum(2)
+        wgt = np.exp(-d2 / (2 * 0.015 ** 2)) * vaq[None, :]
+        G[a0:a0 + 400] = (wgt @ Tq) / wgt.sum(1, keepdims=True)
+    cfq = (cf * smoothstep(1.32, 1.27, z))[ti][:, None]
+    Q[ti] = Tq * (1 - cfq) + G * cfq
     bump(Q, "3_smooth")
     # 4) Niekur arčiau nei 6 mm nuo odos (liemenyje – nuo išlyginto kūno, kad nekiltų smulkūs guzai)
     ref = P * (1 - w) + Sm * w
