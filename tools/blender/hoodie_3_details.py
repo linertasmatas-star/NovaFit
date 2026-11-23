@@ -36,7 +36,7 @@ neck = neck[np.argsort(ang)]
 NN = len(neck)
 
 UP = np.array([0, 0, 1.0])
-HOOD_R = 14            # eilių skaičius nuo kaklo iki kapišono krašto
+HOOD_R = 22            # eilių skaičius nuo kaklo iki kapišono krašto
 PU, PV = 14, 9         # kišenės tinklelis
 STR_N, STR_SIDES = 9, 6
 
@@ -67,12 +67,12 @@ def build(P):
         for j in range(HOOD_R + 1):
             t = j / HOOD_R
             if t <= 0.2:
-                q = p + UP * (0.045 * t / 0.2) + u * (0.004 + 0.03 * t / 0.2)
+                q = p + UP * (0.022 * math.sin(math.pi / 2 * t / 0.2)) + u * (0.006 + 0.03 * t / 0.2)
             else:
                 s = (t - 0.2) / 0.8
-                g = p + UP * (0.045 - s * L * (1 - 0.6 * side)) + u * (0.03 + s * L * side * 0.8)
+                g = p + UP * (0.022 - s * L * (1 - 0.6 * side)) + u * (0.03 + s * L * side * 0.8)
                 g[0] = c[0] + (g[0] - c[0]) * (1 + 0.6 * wb * math.sin(math.pi / 2 * s))   # nugaroje platėja
-                puff = 0.012 + 0.03 * wb * math.sin(math.pi * min(1.0, s * 1.15)) ** 0.8
+                puff = 0.014 + 0.04 * wb * math.sin(math.pi * min(1.0, s * 1.1)) ** 0.7 + 0.01 * (1 - s)
                 q = onto(g, nrm, prev - UP * 0.015, puff)
             row.append(q); prev = q
         rows.append(row)
@@ -86,7 +86,7 @@ def build(P):
         for ju in range(PU):
             x = cz[0] + (ju / (PU - 1) - 0.5) * 2 * hw
             o = Vector((x, cz[1] - 0.6, zz)); loc, *_ = bvh.ray_cast(o, Vector((0, 1, 0)), 1.5)
-            q = np.array(loc) + np.array([0, -0.005, 0]) if loc is not None else np.array([x, cz[1] - 0.12, zz])
+            q = np.array(loc) + np.array([0, -0.009, 0]) if loc is not None else np.array([x, cz[1] - 0.12, zz])
             pts.append(q)
     # Raišteliai: du ploni vamzdeliai žemyn nuo kaklo priekio
     front = neck[P[neck, 1] < c[1]]
@@ -131,10 +131,12 @@ for s in range(2):                                          # raišteliai
             faces.append((V(i0), V(i1), V(i1 + STR_SIDES), V(i0 + STR_SIDES)))
     faces.append(tuple(V(base + (STR_N - 1) * STR_SIDES + a) for a in range(STR_SIDES)))   # galas
 for f in faces:
-    bm.faces.new(f)
+    bm.faces.new(f).smooth = True
 # kapišono pradžią „prisiuvam“ prie kaklo (tie patys taškai)
 weld = {new[a * W]: bm.verts[int(neck[a])] for a in range(NN)}
 bmesh.ops.weld_verts(bm, targetmap=weld)
+for fc in bm.faces:
+    fc.smooth = True
 bm.to_mesh(me); bm.free()
 me.update()
 

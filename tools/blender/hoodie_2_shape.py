@@ -87,7 +87,7 @@ def shape(P):
     R = np.maximum(R, (np.roll(R, 1) + np.roll(R, -1)) / 2 * 0.98)
     target = np.maximum(r, 0.97 * R[b])
     rn = r + (target - r) * DRAPE
-    rn = rn * (1 - RIB) + r * RIB                         # apačioje juosta suima
+    rn = rn * (1 - 0.6 * RIB) + r * 0.6 * RIB             # apačioje juosta šiek tiek suima
     Q[:, :2] = c + d / r[:, None] * rn[:, None]
     return Q
 
