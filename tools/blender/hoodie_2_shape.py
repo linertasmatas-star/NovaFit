@@ -90,6 +90,23 @@ def shape(P):
     rn = r + (target - r) * DRAPE
     rn = rn * (1 - 0.6 * RIB) + r * 0.6 * RIB             # apačioje juosta šiek tiek suima
     Q[:, :2] = c + d / r[:, None] * rn[:, None]
+    # Krūtinė: iš šono žiūrint audinys tempiasi tiesiai (viršutinis gaubtas), o ne seka formą
+    for x0 in np.arange(-0.16, 0.16, 0.012):
+        m = BUST & (np.abs(Q[:, 0] - x0) < 0.009)
+        if m.sum() < 4: continue
+        zz, dd = Q[m, 2], -Q[m, 1]                         # gylis į priekį (Blender: priekis = -Y)
+        o = np.argsort(zz); zz, dd = zz[o], dd[o]
+        hull = []
+        for pt in zip(zz, dd):
+            while len(hull) >= 2 and ((hull[-1][0] - hull[-2][0]) * (pt[1] - hull[-2][1]) - (hull[-1][1] - hull[-2][1]) * (pt[0] - hull[-2][0])) >= 0:
+                hull.pop()
+            hull.append(pt)
+        hz, hdp = np.array(hull).T
+        env = np.interp(Q[m, 2], hz, hdp)
+        idx = np.where(m)[0]
+        Q[idx, 1] = -np.maximum(-Q[idx, 1], env)
+    for _ in range(6):
+        Q[BUST] += 0.5 * (neighbor_avg(Q)[BUST] - Q[BUST])
     return Q
 
 out = {}

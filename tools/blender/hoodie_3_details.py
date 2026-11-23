@@ -77,17 +77,23 @@ def build(P):
             row.append(q); prev = q
         rows.append(row)
     pts += [q for row in rows for q in row]
-    # Kengūros kišenė priekyje
+    # Kengūros kišenė priekyje: išgaubta per vidurį, su uždarais viršaus ir apačios kraštais
     hem = P[:, 2].min()
-    for jv in range(PV):
-        v = jv / (PV - 1)
+    for jv in range(PV + 2):
+        if jv == 0 or jv == PV + 1:                        # kraštų juostos prie džemperio paviršiaus
+            v = 0.0 if jv == 0 else 1.0; lift = 0.002
+        else:
+            v = (jv - 1) / (PV - 1); lift = None
         zz = hem + 0.065 + v * 0.18
         hw = 0.15 - 0.05 * v
         for ju in range(PU):
-            x = cz[0] + (ju / (PU - 1) - 0.5) * 2 * hw
+            uu = ju / (PU - 1)
+            x = cz[0] + (uu - 0.5) * 2 * hw
             o = Vector((x, cz[1] - 0.6, zz)); loc, *_ = bvh.ray_cast(o, Vector((0, 1, 0)), 1.5)
-            q = np.array(loc) + np.array([0, -0.009, 0]) if loc is not None else np.array([x, cz[1] - 0.12, zz])
-            pts.append(q)
+            if loc is None:
+                loc, *_ = bvh.find_nearest(Vector((x, cz[1] - 0.15, zz)))
+            off = lift if lift is not None else 0.006 + 0.009 * math.sin(math.pi * uu) * math.sin(math.pi * min(1, v * 1.4 + 0.15))
+            pts.append(np.array(loc) + np.array([0, -off, 0]))
     # Raišteliai: du ploni vamzdeliai žemyn nuo kaklo priekio
     front = neck[P[neck, 1] < c[1]]
     for sx in (-1, 1):
@@ -117,11 +123,11 @@ for a in range(NN):                                         # kapišonas – ži
     for j in range(HOOD_R):
         faces.append((V(a * W + j), V(b * W + j), V(b * W + j + 1), V(a * W + j + 1)))
 o = NN * W
-for jv in range(PV - 1):                                    # kišenė
+for jv in range(PV + 1):                                    # kišenė (su kraštų juostomis)
     for ju in range(PU - 1):
         i = o + jv * PU + ju
         faces.append((V(i), V(i + 1), V(i + PU + 1), V(i + PU)))
-o += PU * PV
+o += PU * (PV + 2)
 for s in range(2):                                          # raišteliai
     base = o + s * STR_N * STR_SIDES
     for k in range(STR_N - 1):
