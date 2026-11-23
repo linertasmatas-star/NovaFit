@@ -161,7 +161,10 @@ def shape(P):
     # Apvalkalo taškų kryptis ir aukštis – iš išlyginto kūno (ne iš odos normalių: ties speneliu jos „išsiskleidžia“)
     sd = Sb[:, :2] - c
     sr = np.linalg.norm(sd, axis=1) + 1e-9
-    shellQ = np.column_stack([c + sd / sr[:, None] * np.maximum(shell_r, r + 0.006)[:, None], P[:, 2]])
+    # krūtinėje – tik apvalkalas (jis skaičiuojamas erdviniu tinkleliu, todėl tankus kūno tinklas ties speneliu jo neveikia)
+    cf = SHELL * smoothstep(1.02, 1.08, z)
+    floor = (r + 0.006) * (1 - cf)
+    shellQ = np.column_stack([c + sd / sr[:, None] * np.maximum(shell_r, floor)[:, None], P[:, 2]])
     Q = Q * (1 - SHELL[:, None]) + shellQ * SHELL[:, None]
     # Audinys užsitempia virš tikro kūno lygiu kupolu: spindulys ≥ odos + 5 mm, bet išlygintas (be smaigalių)
     qd = Q[:, :2] - c
@@ -171,8 +174,8 @@ def shape(P):
         Sl += 0.5 * (neighbor_avg(Sl) - Sl)
     req = np.linalg.norm(Sl[:, :2] - c, axis=1) + 0.008
     sr_ = qs.copy()
-    ws = SHELL
-    for _ in range(60):
+    ws = SHELL * 0
+    for _ in range(0):
         sr_ = np.maximum(sr_, req * ws + sr_ * (1 - ws))
         sr_ = sr_ + ws * 0.5 * (neighbor_avg(sr_[:, None])[:, 0] - sr_)
     sr_ = np.maximum(sr_, (req - 0.002) * ws + sr_ * (1 - ws))
