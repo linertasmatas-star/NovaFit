@@ -102,9 +102,18 @@ def shape(P):
     c = P[CHEST, :2].mean(0)
     d = P[:, :2] - c
     # Stiprus išlyginimas (visos smulkmenos dingsta), o sumažėjusi apimtis grąžinama kiekviename aukštyje
+    # Erdvinis išlyginimas (Gauso, ~2,5 cm): nepriklauso nuo to, kiek tankus kūno tinklelis (ties speneliu jis labai tankus)
     Sb = P.copy()
-    for _ in range(80):
-        Sb += 0.5 * (neighbor_avg(Sb) - Sb)
+    ti = np.where(torso)[0]
+    fa = np.linalg.norm(np.cross(P[tri[:, 1]] - P[tri[:, 0]], P[tri[:, 2]] - P[tri[:, 0]]), axis=1) / 6
+    va = np.zeros(nv); 
+    for j in range(3): np.add.at(va, tri[:, j], fa)
+    T = P[ti]
+    for a0 in range(0, len(ti), 400):
+        blk = T[a0:a0 + 400]
+        d2 = ((blk[:, None, :] - T[None, :, :]) ** 2).sum(2)
+        wgt = np.exp(-d2 / (2 * 0.025 ** 2)) * va[ti][None, :]
+        Sb[ti[a0:a0 + 400]] = (wgt @ T) / wgt.sum(1, keepdims=True)
     rP = np.linalg.norm(P[:, :2] - c, axis=1)
     rb = np.linalg.norm(Sb[:, :2] - c, axis=1)
     zbb = np.round((z - hem_z) / 0.02).astype(int)
