@@ -209,8 +209,6 @@ def shape(P):
     w = SHELL[:, None]
     for it in range(60):
         Q += w * (0.5 if it % 2 == 0 else -0.52) * (neighbor_avg(Q) - Q)
-    for _ in range(25):                                  # papildomai – paprastas lyginimas (nuapvalina krūtinės viršūnes)
-        Q += w * 0.5 * (neighbor_avg(Q) - Q)
     # Erdvinis audinio išlyginimas krūtinėje ir pilve (~1,5 cm): tankiame tinkle mažyčiai trikampiai susilygina
     Tq = Q[ti]
     vaq = va[ti]
