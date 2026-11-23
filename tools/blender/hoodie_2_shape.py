@@ -59,57 +59,100 @@ BUST = torso & (z > 1.08) & (z < 1.36) & (B[:, 1] < 0.0)            # priekis (B
 CUFF = (part == 1) & (apos > 0.925)
 FOLD = (part == 1) & (apos > 0.76) & (apos <= 0.925)
 
-thick = np.where(part == 1, 0.014, 0.012).astype(np.float32)
-thick = thick * (1 - RIB) + 0.006 * RIB
-thick[CUFF] = 0.006
+thick = np.where(part == 1, 0.02, 0.016).astype(np.float32)
+thick = thick * (1 - RIB) + 0.012 * RIB
+thick[CUFF] = 0.009
 w = (apos[FOLD] - 0.76) / 0.165
 thick[FOLD] += 0.006 * (0.5 + 0.5 * np.sin(w * math.pi * 5)) * np.sin(w * math.pi)   # susikaupusios raukšlės
 
-NB = 48
+NB = 64
+ARMPIT_Z = 1.27
+X = B[:, 0]; _cx = float(np.median(X[torso]))
+# Krūtinės priekis (iki raktikaulių) irgi lygus – speneliai patenka į apvalkalą, ne į pereinamąją zoną
+FRONT = smoothstep(ARMPIT_Z + 0.15, ARMPIT_Z + 0.09, z) * smoothstep(0.16, 0.11, np.abs(X - _cx))
+SHELL = torso * np.maximum(smoothstep(ARMPIT_Z + 0.06, ARMPIT_Z - 0.02, z), FRONT)
+arm = part == 1
+
 def shape(P):
     n = vnormals(P)
+    # 1) Rankovės ir pečiai: išlygintas paviršius, atitrauktas nuo odos (smulkmenų nebelieka)
     S = P.copy()
-    for _ in range(40):                                   # audinys neseka smulkmenų (krūtinė, mentės)
-        S[torso] += 0.5 * (neighbor_avg(S)[torso] - S[torso])
-    for _ in range(160):                                  # krūtinės sritis – dar lygiau (audinys tempiasi per ją)
-        S[BUST] += 0.5 * (neighbor_avg(S)[BUST] - S[BUST])
-    # į išorę – kiek reikia; į vidų – tik iki 3 mm nuo odos (kad nelįstų į kūną)
-    lift = np.maximum(((S - P) * n).sum(1), -(thick - 0.003) * torso)
+    for _ in range(40):
+        S += 0.5 * (neighbor_avg(S) - S)
+    lift = np.maximum(((S - P) * n).sum(1), 0)
     Q = P + n * (thick + lift)[:, None]
-    # Laisvas kritimas nuo krūtinės: kiekviena kryptimi spindulys ne mažesnis nei krūtinės
-    c = Q[CHEST, :2].mean(0)
-    d = Q[:, :2] - c
-    r = np.linalg.norm(d, axis=1) + 1e-9
-    b = ((np.arctan2(d[:, 1], d[:, 0]) + math.pi) / (2 * math.pi) * NB).astype(int) % NB
-    R = np.zeros(NB)
-    np.maximum.at(R, b[HANG], r[HANG])                    # audinys kabo tiesiai: ne siauriau už plačiausią vietą
-    for _ in range(3):                                    # užpildom tuščias kryptis
-        R = np.maximum(R, np.maximum(np.roll(R, 1), np.roll(R, -1)) * (R == 0))
-    R = np.maximum(R, (np.roll(R, 1) + np.roll(R, -1)) / 2 * 0.98)
-    target = np.maximum(r, 0.97 * R[b])
-    rn = r + (target - r) * DRAPE
-    rn = rn * (1 - 0.6 * RIB) + r * 0.6 * RIB             # apačioje juosta šiek tiek suima
-    Q[:, :2] = c + d / r[:, None] * rn[:, None]
-    # Krūtinė: iš šono žiūrint audinys tempiasi tiesiai (viršutinis gaubtas), o ne seka formą
-    for x0 in np.arange(-0.16, 0.16, 0.012):
-        m = BUST & (np.abs(Q[:, 0] - x0) < 0.009)
-        if m.sum() < 4: continue
-        zz, dd = Q[m, 2], -Q[m, 1]                         # gylis į priekį (Blender: priekis = -Y)
-        o = np.argsort(zz); zz, dd = zz[o], dd[o]
-        hull = []
-        for pt in zip(zz, dd):
-            while len(hull) >= 2 and ((hull[-1][0] - hull[-2][0]) * (pt[1] - hull[-2][1]) - (hull[-1][1] - hull[-2][1]) * (pt[0] - hull[-2][0])) >= 0:
-                hull.pop()
-            hull.append(pt)
-        hz, hdp = np.array(hull).T
-        env = np.interp(Q[m, 2], hz, hdp)
-        idx = np.where(m)[0]
-        Q[idx, 1] = -np.maximum(-Q[idx, 1], env)
-    for _ in range(6):
-        Q[BUST] += 0.5 * (neighbor_avg(Q)[BUST] - Q[BUST])
-    # Niekur arčiau nei 4 mm nuo odos – kad kūnas neprasimuštų pro audinį
-    dn = ((Q - P) * n).sum(1)
-    Q += n * np.maximum(0.004 - dn, 0)[:, None]
+    # 2) Liemuo: kiekviename aukštyje – lygi apimtis (apvalkalas), o ne kūno forma.
+    # Apvalkalas skaičiuojamas pagal stipriai išlygintą kūną – speneliai ir kitos smulkmenos nebeturi įtakos
+    Sm = P.copy()
+    for it in range(160):                                # Taubin: smulkmenos dingsta, tūris lieka
+        Sm += (0.5 if it % 2 == 0 else -0.53) * (neighbor_avg(Sm) - Sm)
+    c = P[CHEST, :2].mean(0)
+    d = P[:, :2] - c
+    r = np.linalg.norm(Sm[:, :2] - c, axis=1) + 1e-9
+    th = np.arctan2(d[:, 1], d[:, 0])
+    bi = ((th + math.pi) / (2 * math.pi) * NB).astype(int) % NB
+    zb = ((z - hem_z) / 0.015).astype(int)
+    NZ = zb[torso].max() + 2
+    E = np.zeros((NZ, NB))
+    rr = np.linalg.norm(d, axis=1)                       # tikras kūno spindulys (su speneliais)
+    Ereq = np.zeros((NZ, NB))
+    for k in range(NZ):                       # 80-asis procentilis: maži iškilimai (speneliai) neįskaičiuojami
+        mk = torso & (zb == k) & (np.abs(P[:, 0] - c[0]) < 0.19)
+        for jb in range(NB):
+            sel = mk & ((bi == jb) | (bi == (jb + 1) % NB) | (bi == (jb - 1) % NB))
+            if sel.sum() >= 2:
+                E[k, jb] = np.percentile(r[sel], 95)
+                Ereq[k, jb] = rr[sel].max() + 0.004
+    for _ in range(NB):                       # tuščios kryptys – iš kaimynų
+        e0 = E == 0
+        if not e0.any(): break
+        nb = np.maximum(np.roll(E, 1, 1), np.roll(E, -1, 1))
+        E[e0] = nb[e0]
+    # Kur kūnas kyšo (speneliai) – audinys ištempiamas plačiu, švelniu „tentu“, ne smulkiu guzu
+    D = Ereq.copy()
+    for _ in range(2):
+        D = np.maximum.reduce([D, np.roll(D, 1, 1), np.roll(D, -1, 1),
+                               np.vstack([D[1:], D[-1:]]), np.vstack([D[:1], D[:-1]])])
+    E = np.maximum(E, 0.5 * (E + D))                     # tik pusė – kad nebūtų gumbų
+    for _ in range(4):                        # lyginam aplink ir aukštyn
+        E = (np.roll(E, 1, 1) + 2 * E + np.roll(E, -1, 1)) / 4
+        E[1:-1] = (E[:-2] + 2 * E[1:-1] + E[2:]) / 4
+    # Žemiau krūtinės krenta tiesiai: ne siauriau už plačiausią vietą virš jos (krūtinė, pilvas, sėdmenys)
+    kc = int((1.25 - hem_z) / 0.015)                     # nuo krūtinės viršūnės – be „lentynos“ po krūtine
+    top = E[min(kc, NZ - 1)].copy()
+    for k in range(min(kc, NZ - 1), -1, -1):
+        top = np.maximum(top, E[k])
+        E[k] = np.maximum(E[k], 0.98 * top)
+    # Apačios juosta šiek tiek suima
+    for k in range(min(5, NZ)):
+        E[k] *= 0.94 + 0.012 * k
+    fz = np.clip((z - hem_z) / 0.015, 0, NZ - 1.001)
+    fb = (th + math.pi) / (2 * math.pi) * NB - 0.5
+    k0 = np.floor(fz).astype(int); tz = fz - k0
+    b0 = np.floor(fb).astype(int); tb = fb - b0
+    b0m, b1m = b0 % NB, (b0 + 1) % NB
+    env = ((E[k0, b0m] * (1 - tb) + E[k0, b1m] * tb) * (1 - tz) +
+           (E[np.minimum(k0 + 1, NZ - 1), b0m] * (1 - tb) + E[np.minimum(k0 + 1, NZ - 1), b1m] * tb) * tz)
+    shell_r = env + thick
+    qd = Q[:, :2] - c
+    qr = np.linalg.norm(qd, axis=1) + 1e-9
+    new_r = qr * (1 - SHELL) + np.maximum(shell_r, r + 0.006) * SHELL
+    Q[:, :2] = c + qd / qr[:, None] * new_r[:, None]
+    # 3) Audinio paviršių išlyginam pačiu (tankus tinklas ties speneliais nebeduoda „žiedų“)
+    w = SHELL[:, None]
+    for it in range(60):
+        Q += w * (0.5 if it % 2 == 0 else -0.52) * (neighbor_avg(Q) - Q)
+    # 4) Niekur arčiau nei 6 mm nuo odos (liemenyje – nuo išlyginto kūno, kad nekiltų smulkūs guzai)
+    ref = P * (1 - w) + Sm * w
+    nr = vnormals(ref)
+    dn = ((Q - ref) * nr).sum(1)
+    dreal = ((Q - P) * n).sum(1)                         # tikra oda (speneliai) – bent 4 mm, kad nekyšotų
+    push = np.maximum(np.maximum(0.006 - dn, 0.004 - dreal), 0)
+    for _ in range(10):                                  # stūmimą paskleidžiam plačiai ir švelniai
+        push = np.maximum(push, 0.85 * neighbor_avg(push[:, None])[:, 0])
+    for _ in range(4):
+        push = np.maximum(push, neighbor_avg(push[:, None])[:, 0])
+    Q += nr * push[:, None]
     return Q
 
 out = {}
