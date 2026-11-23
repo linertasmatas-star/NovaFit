@@ -135,7 +135,7 @@ def shape(P):
             sel = mk & ((bi == jb) | (bi == (jb + 1) % NB) | (bi == (jb - 1) % NB))
             if sel.sum() >= 2:
                 E[k, jb] = np.percentile(r[sel], 95)
-                Ereq[k, jb] = r[sel].max() + 0.004          # išlyginto (be spenelių) kūno viršūnė
+                Ereq[k, jb] = rr[sel].max() + 0.006          # tikro kūno viršūnė (audinys ją dengia)
     for _ in range(NB):                       # tuščios kryptys – iš kaimynų
         e0 = E == 0
         if not e0.any(): break
