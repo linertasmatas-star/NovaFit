@@ -115,7 +115,7 @@ export async function createAvatar3D(canvas, opts = {}) {
 
   // --- Atskiri Blenderyje sukurti drabužiai (kraunami tik pirmą kartą užsivilkus) ---
   // Jų formos turi tuos pačius pavadinimus ir eiliškumą kaip kūno, todėl keičiasi kartu su figūra.
-  const MODELS = { hoodie: "hoodie.glb" };
+  const MODELS = { hoodie: "hoodie.glb", jeans: "jeans.glb", sweater: "sweater.glb" };
   const models = {}, loading = {};
   let lastItems = [];
   function loadModel(type) {
