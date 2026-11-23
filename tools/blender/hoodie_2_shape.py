@@ -74,8 +74,15 @@ FRONT = smoothstep(ARMPIT_Z + 0.15, ARMPIT_Z + 0.09, z) * smoothstep(0.16, 0.11,
 SHELL = torso * np.maximum(smoothstep(ARMPIT_Z + 0.06, ARMPIT_Z - 0.02, z), FRONT)
 arm = part == 1
 
+DBG = {}
+FRONTCHEST = torso & (B[:, 1] < -0.05) & (z > 1.05) & (z < 1.30) & (np.abs(B[:, 0]) < 0.15)
+def bump(Q, tag):
+    nn = vnormals(Q)
+    lap = ((Q - neighbor_avg(Q)) * nn).sum(1)[FRONTCHEST]
+    DBG.setdefault(tag, round(float(lap.max() * 1000), 2))          # mm: kiek taškas iškilęs virš kaimynų
 def shape(P):
     n = vnormals(P)
+    bump(P, "0_body")
     # 1) Rankovės ir pečiai: išlygintas paviršius, atitrauktas nuo odos (smulkmenų nebelieka)
     S = P.copy()
     for _ in range(40):
@@ -139,10 +146,12 @@ def shape(P):
     qr = np.linalg.norm(qd, axis=1) + 1e-9
     new_r = qr * (1 - SHELL) + np.maximum(shell_r, r + 0.006) * SHELL
     Q[:, :2] = c + qd / qr[:, None] * new_r[:, None]
+    bump(Sm, "1_Sm"); bump(Q, "2_shell")
     # 3) Audinio paviršių išlyginam pačiu (tankus tinklas ties speneliais nebeduoda „žiedų“)
     w = SHELL[:, None]
     for it in range(60):
         Q += w * (0.5 if it % 2 == 0 else -0.52) * (neighbor_avg(Q) - Q)
+    bump(Q, "3_smooth")
     # 4) Niekur arčiau nei 6 mm nuo odos (liemenyje – nuo išlyginto kūno, kad nekiltų smulkūs guzai)
     ref = P * (1 - w) + Sm * w
     nr = vnormals(ref)
@@ -156,6 +165,7 @@ def shape(P):
     for _ in range(4):
         push = np.maximum(push, neighbor_avg(push[:, None])[:, 0])
     Q += nr * push[:, None]
+    bump(Q, "4_push")
     return Q
 
 out = {}
@@ -167,4 +177,4 @@ for k in kb:
     out[k.name] = round(float(np.abs(Q - getco(k)).max()), 4)
 me.update()
 hd.color = (0.36, 0.45, 0.62, 1)
-result = {"verts": nv, "hem_z": round(float(hem_z), 3), "chest_verts": int(CHEST.sum())}
+result = {"dbg": DBG, "verts": nv, "hem_z": round(float(hem_z), 3), "chest_verts": int(CHEST.sum())}
