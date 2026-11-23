@@ -164,6 +164,8 @@ def shape(P):
     w = SHELL[:, None]
     for it in range(60):
         Q += w * (0.5 if it % 2 == 0 else -0.52) * (neighbor_avg(Q) - Q)
+    for _ in range(25):                                  # papildomai – paprastas lyginimas (nuapvalina krūtinės viršūnes)
+        Q += w * 0.5 * (neighbor_avg(Q) - Q)
     bump(Q, "3_smooth")
     # 4) Niekur arčiau nei 6 mm nuo odos (liemenyje – nuo išlyginto kūno, kad nekiltų smulkūs guzai)
     ref = P * (1 - w) + Sm * w
