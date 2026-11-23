@@ -113,6 +113,28 @@ export async function createAvatar3D(canvas, opts = {}) {
     return garments[type] = mesh;
   }
 
+  // --- Atskiri Blenderyje sukurti drabužiai (kraunami tik pirmą kartą užsivilkus) ---
+  // Jų formos turi tuos pačius pavadinimus ir eiliškumą kaip kūno, todėl keičiasi kartu su figūra.
+  const MODELS = { hoodie: "hoodie.glb" };
+  const models = {}, loading = {};
+  let lastItems = [];
+  function loadModel(type) {
+    if (!loading[type]) loading[type] = new GLTFLoader().loadAsync(new URL(MODELS[type], BASE).href).then(g => {
+      let m = null; g.scene.traverse(o => { if (o.isMesh && !m) m = o; });
+      const names = (m.geometry.userData.targetNames) || Object.keys(m.morphTargetDictionary || {});
+      m.material = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.9, metalness: 0, side: THREE.DoubleSide });
+      m.morphTargetInfluences = body.morphTargetInfluences;      // tas pats formų masyvas kaip kūno
+      m.morphTargetDictionary = dict;
+      m.frustumCulled = false; m.visible = false;
+      m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1);
+      root.add(m);
+      models[type] = m;
+      setOutfit(lastItems);                                      // pritaikom dabartinį derinį
+      return m;
+    }).catch(err => { console.error("Nepavyko įkelti", type, err); });
+    return loading[type];
+  }
+
   // --- Kūno formos pagal matmenis ---
   let natural = info.measures["female-avg"].height;
   function measureAt(gender, w, key, morph) {
@@ -155,11 +177,17 @@ export async function createAvatar3D(canvas, opts = {}) {
 
   // --- Derinys ---
   function setOutfit(items) {
-    for (const m of [...Object.values(garments), ...Object.values(bells)]) m.visible = false;
+    lastItems = items;
+    for (const m of [...Object.values(garments), ...Object.values(bells), ...Object.values(models)]) m.visible = false;
     const outer = items.some(i => i.type === "jacket" || i.type === "coat");
     for (const it of items) {
       // Po striuke ar paltu laisvi marškinėliai „susispaudžia“ (kaip 2D versijoje)
       const type = it.type === "oversize" && outer ? "tshirt" : it.type;
+      if (MODELS[type]) {
+        if (models[type]) { models[type].material.color.set(it.color); models[type].visible = true; }
+        else loadModel(type);
+        continue;
+      }
       const m = garment(type);
       if (!m) continue;
       m.material.color.set(it.color);
