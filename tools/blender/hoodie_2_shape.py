@@ -162,7 +162,10 @@ def shape(P):
     # Audinys užsitempia virš tikro kūno lygiu kupolu: spindulys ≥ odos + 5 mm, bet išlygintas (be smaigalių)
     qd = Q[:, :2] - c
     qs = np.linalg.norm(qd, axis=1) + 1e-9
-    req = rP + 0.005
+    Sl = P.copy()                                        # švelniai išlygintas kūnas: krūtinė lieka, speneliai dingsta
+    for _ in range(20):
+        Sl += 0.5 * (neighbor_avg(Sl) - Sl)
+    req = np.linalg.norm(Sl[:, :2] - c, axis=1) + 0.008
     sr_ = qs.copy()
     ws = SHELL
     for _ in range(60):
