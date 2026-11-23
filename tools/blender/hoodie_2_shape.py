@@ -242,7 +242,26 @@ def shape(P):
         push = np.maximum(push, 0.85 * neighbor_avg(push[:, None])[:, 0])
     for _ in range(4):
         push = np.maximum(push, neighbor_avg(push[:, None])[:, 0])
+    chestm = cf * smoothstep(1.32, 1.27, z)               # krūtinė ir pilvas
+    push = push * (1 - chestm)
     Q += nr * push[:, None]
+    # Krūtinė/pilvas: bent 1 cm nuo tikros odos; stūmimas išlyginamas erdviškai (platus, švelnus, be smaigalių)
+    nq = vnormals(Q)
+    dreal2 = ((Q - P) * n).sum(1)
+    need = (np.maximum(0.010 - dreal2, 0) * chestm)[ti]
+    Tq = Q[ti]
+    W = np.zeros((len(ti), len(ti)), np.float32)
+    for a0 in range(0, len(ti), 400):
+        blk = Tq[a0:a0 + 400]
+        d2 = ((blk[:, None, :] - Tq[None, :, :]) ** 2).sum(2)
+        W[a0:a0 + 400] = np.exp(-d2 / (2 * 0.02 ** 2)) * va[ti][None, :]
+    W /= W.sum(1, keepdims=True)
+    pp = need.copy()
+    for _ in range(12):
+        pp = np.maximum(need, W @ pp)
+    pp = W @ (W @ pp)
+    Q[ti] += nq[ti] * pp[:, None]
+    DBG.setdefault("chest_push_max_mm", round(float(pp.max()) * 1000, 1))
     bump(Q, "4_push")
     return Q
 
