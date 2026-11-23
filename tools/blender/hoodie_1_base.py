@@ -46,6 +46,9 @@ for v, o, t in moves:
     v.co = v.co.lerp(o.co, t)
     for L in shapes: v[L] = v[L].lerp(o[L], t)
 bm.to_mesh(hd.data); bm.free()
+# Kūno šešėliavimo kryptys (normalės) drabužiui netinka – jos „piešia“ spenelius ir bambą ant lygaus audinio
+if "custom_normal" in hd.data.attributes:
+    hd.data.attributes.remove(hd.data.attributes["custom_normal"])
 hd.data.update()
 av.select_set(False); hd.select_set(True); bpy.context.view_layer.objects.active = hd
 result = {"hoodie_verts": len(hd.data.vertices), "faces": len(hd.data.polygons), "snapped": len(moves),
