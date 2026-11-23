@@ -107,6 +107,9 @@ def shape(P):
         Q[idx, 1] = -np.maximum(-Q[idx, 1], env)
     for _ in range(6):
         Q[BUST] += 0.5 * (neighbor_avg(Q)[BUST] - Q[BUST])
+    # Niekur arčiau nei 4 mm nuo odos – kad kūnas neprasimuštų pro audinį
+    dn = ((Q - P) * n).sum(1)
+    Q += n * np.maximum(0.004 - dn, 0)[:, None]
     return Q
 
 out = {}
