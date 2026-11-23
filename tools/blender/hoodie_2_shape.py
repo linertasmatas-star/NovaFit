@@ -51,7 +51,7 @@ B = getco(kb["Basis"])                 # bazinė figūra – pagal ją nustatomo
 z = B[:, 2]
 torso = part == 0
 hem_z = z[torso].min()
-CHEST = torso & (z > 1.17) & (z < 1.26)
+CHEST = torso & (z > 1.17) & (z < 1.26) & (np.abs(B[:, 0]) < 0.13)   # be pažastų – kitaip apačia per plati
 DRAPE = smoothstep(1.17, 1.10, z) * torso           # žemiau krūtinės – krenta laisvai
 RIB = smoothstep(hem_z + 0.065, hem_z + 0.015, z) * torso   # apačios juosta
 CUFF = (part == 1) & (apos > 0.925)
@@ -67,9 +67,10 @@ NB = 48
 def shape(P):
     n = vnormals(P)
     S = P.copy()
-    for _ in range(12):                                   # audinys neseka smulkmenų (krūtinė, mentės)
+    for _ in range(40):                                   # audinys neseka smulkmenų (krūtinė, mentės)
         S[torso] += 0.5 * (neighbor_avg(S)[torso] - S[torso])
-    lift = np.maximum(((S - P) * n).sum(1), 0)
+    # į išorę – kiek reikia; į vidų – tik iki 3 mm nuo odos (kad nelįstų į kūną)
+    lift = np.maximum(((S - P) * n).sum(1), -(thick - 0.003) * torso)
     Q = P + n * (thick + lift)[:, None]
     # Laisvas kritimas nuo krūtinės: kiekviena kryptimi spindulys ne mažesnis nei krūtinės
     c = Q[CHEST, :2].mean(0)
@@ -81,7 +82,7 @@ def shape(P):
     for _ in range(3):                                    # užpildom tuščias kryptis
         R = np.maximum(R, np.maximum(np.roll(R, 1), np.roll(R, -1)) * (R == 0))
     R = np.maximum(R, (np.roll(R, 1) + np.roll(R, -1)) / 2 * 0.98)
-    target = np.maximum(r, 0.985 * R[b])
+    target = np.maximum(r, 0.97 * R[b])
     rn = r + (target - r) * DRAPE
     rn = rn * (1 - RIB) + r * RIB                         # apačioje juosta suima
     Q[:, :2] = c + d / r[:, None] * rn[:, None]
