@@ -235,6 +235,9 @@ def shape(P):
     chest_shell = SHELL * (1 - hipb)                      # krūtinėje atstumą jau užtikrino kupolas
     need_sm = (0.006 + 0.018 * hipb) * (1 - chest_shell)
     push = np.maximum(np.maximum(need_sm - dn, need_real - dreal), 0)
+    chm = (cf > 0.5) & torso & (B[:, 1] < -0.05) & (z > 1.0) & (z < 1.28)
+    DBG.setdefault("dreal_chest_mm", [round(float(np.percentile(dreal[chm], q)) * 1000, 1) for q in (0, 5, 50)])
+    DBG.setdefault("pushed_chest", int((push[chm] > 0.0005).sum()))
     for _ in range(10):                                  # stūmimą paskleidžiam plačiai ir švelniai
         push = np.maximum(push, 0.85 * neighbor_avg(push[:, None])[:, 0])
     for _ in range(4):
