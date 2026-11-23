@@ -8,7 +8,8 @@ Atsisiųskite visą repozitoriją (Code → Download ZIP), išskleiskite ir du k
 ## Gyva nuoroda
 https://linertasmatas-star.github.io/NovaFit/
 
-## Kas jau veikia (demo v9)
+## Kas jau veikia (demo v10)
+- Savo drabužio raštas ant 2D avataro: iš nuotraukos automatiškai išrenkamas audinio kvadratas (be fono), juo užpildomas drabužio sluoksnis (šešėliai išlieka). Kirpimas – pagal pasirinktą tipą (imitacija). Galima išjungti varnele formoje
 - 3D avataras (jungiklis 2D / 3D ant scenos): figūra keičiasi pagal lytį, ūgį, svorį, juosmenį, klubus ir rankų ilgį; drabužiai keičiasi kartu su figūra; sukamas pirštu. Kraunamas tik įjungus (~3 MB). Kaip sukurti iš naujo: `python3 tools/mh_export_glb.py <mpfb2 src/mpfb/data> assets/avatar3d` (reikia 3dobjs, targets/macrodetails, targets/torso, targets/arms). Bandymui – `tools/test3d.html` (per vietinį serverį)
 - Pradžios žingsniai (rodomi pirmą kartą, vėliau – paspaudus logotipą): Sveiki → Paskyra → Matmenys → Avataras. Paskyra – demonstracinė imitacija: paskyros nekuriamos, duomenys niekur nesiunčiami. Papildomi matmenys (rankų ilgis, juosmuo, klubai) išsaugomi, bet avataro kol kas nekeičia
 - Naujas pagrindinis ekranas pagal dizaino sistemą: šviesi scena su avataru, apatinis meniu (Derinys / Spinta / Mano deriniai + „Pasiūlyk derinį“), matomo drabužio spalvos peržiūra

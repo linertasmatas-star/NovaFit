@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16151B">
-<title>NovaFit – demo v9</title>
+<title>NovaFit – demo v10</title>
 <!-- 3D avatarui: three.js biblioteka projekte (assets/lib/three), kraunama tik įjungus 3D -->
 <script type="importmap">{ "imports": { "three": "./assets/lib/three/three.module.js", "three/addons/": "./assets/lib/three/addons/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -210,6 +210,8 @@
   .sheet select.input { appearance:auto; }
   .color-row { display:flex; align-items:center; gap:10px; }
   .color-row input[type=color] { width:48px; height:44px; padding:0; border:1px solid var(--line); border-radius:12px; background:none; cursor:pointer; }
+  .fabric-row { margin-top:12px; align-items:center; }
+  .fabric-row canvas { width:56px; height:56px; border-radius:10px; flex-shrink:0; margin-left:auto; border:1px solid var(--line); background:var(--stage); }
   .sheet .actions { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:16px; }
 
   .pop { animation:pop .2s ease-out; }
@@ -432,6 +434,9 @@
       </div>
     </div>
     <p class="hint">Spalvą parinkome iš nuotraukos. Jei netinka – paspausk ant drabužio nuotraukoje arba pasirink pats.</p>
+    <label class="check fabric-row"><input type="checkbox" id="itemPattern" checked>
+      <span><b style="color:var(--ink)">Rodyti raštą iš nuotraukos</b><br>Ant avataro bus tavo drabužio audinys, raštas ar užrašas. Iškarpa – pagal drabužio tipą.</span>
+      <canvas id="itemFabric" width="96" height="96" aria-label="Audinio pavyzdys iš nuotraukos"></canvas></label>
     <p class="hint" id="itemMsg"></p>
     <div class="actions">
       <button class="btn btn-secondary" id="itemCancel">Atšaukti</button>
@@ -885,6 +890,50 @@ async function coloredLayer(fig, type, color) {
   return colorCache[key];
 }
 
+// Drabužio sluoksnis su audiniu iš nuotraukos: raštas kartojamas (veidrodiškai, kad nesimatytų siūlių),
+// tada padauginamas iš pilko sluoksnio (šešėliai išlieka) ir apkerpamas pagal drabužio formą.
+const bboxCache = {};
+function layerBox(im, key) {
+  if (!bboxCache[key]) {
+    const c = document.createElement("canvas"); c.width = im.width; c.height = im.height;
+    const x = c.getContext("2d"); x.drawImage(im, 0, 0);
+    const d = x.getImageData(0, 0, c.width, c.height).data;
+    let x0 = c.width, y0 = c.height, x1 = 0, y1 = 0;
+    for (let y = 0; y < c.height; y += 2) for (let xx = 0; xx < c.width; xx += 2)
+      if (d[(y * c.width + xx) * 4 + 3] > 20) { x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    bboxCache[key] = x1 > x0 ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : { x: 0, y: 0, w: c.width, h: c.height };
+  }
+  return bboxCache[key];
+}
+async function patternLayer(fig, type, fabric) {
+  const key = `${fig}/${type}/p/${fabric.length}/${fabric.slice(-40)}`;
+  if (!colorCache[key]) {
+    const [im, fab] = await Promise.all([loadImg(`assets/avatar/${fig}/${type}.png`), loadImg(fabric)]);
+    const box = layerBox(im, `${fig}/${type}`);
+    const c = document.createElement("canvas");
+    c.width = im.width; c.height = im.height;
+    const x = c.getContext("2d");
+    // Raštelio dydis – maždaug pusė drabužio pločio (kaip nuotraukoje išrinktas kvadratas)
+    const t = Math.max(24, Math.round(Math.min(box.w * 0.5, box.h * 0.6)));
+    const tile = document.createElement("canvas"); tile.width = tile.height = t * 2;
+    const tx = tile.getContext("2d");
+    for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {   // 2×2 veidrodinis blokas
+      tx.save(); tx.translate(sx > 0 ? 0 : 2 * t, sy > 0 ? 0 : 2 * t); tx.scale(sx, sy); tx.drawImage(fab, 0, 0, t, t); tx.restore();
+    }
+    x.save();
+    x.translate(box.x + box.w / 2 - t / 2, box.y + Math.min(box.h * 0.2, t * 0.6));   // vienas raštelis – ties krūtine / juosmeniu
+    x.fillStyle = x.createPattern(tile, "repeat");
+    x.fillRect(-c.width, -c.height, c.width * 3, c.height * 3);
+    x.restore();
+    x.globalCompositeOperation = "multiply";
+    x.drawImage(im, 0, 0);
+    x.globalCompositeOperation = "destination-in";
+    x.drawImage(im, 0, 0);
+    colorCache[key] = c;
+  }
+  return colorCache[key];
+}
+
 // Įkeliam visus paveikslėlius, kurių reikia vienam avatarui (kūnas + drabužiai)
 async function prepareAvatar(cfg) {
   const fig = figureId(cfg);
@@ -901,8 +950,12 @@ async function prepareAvatar(cfg) {
     // Po striuke ar paltu laisvi marškinėliai „susispaudžia“ – kitaip kyšotų pro šonus.
     // Todėl tada piešiam įprastų marškinėlių sluoksnį.
     const type = item.type === "oversize" && cfg.worn.outer ? "tshirt" : item.type;
-    const color = (cfg.tint && cfg.tint[cat]) || item.color;   // spalvos peržiūra, jei pasirinkta
-    layers.push(await coloredLayer(fig, type, color));
+    const tint = cfg.tint && cfg.tint[cat];   // spalvos peržiūra, jei pasirinkta
+    if (!tint && item.pattern !== false && (item.fabric || item.photo) && isMine(item.id)) {
+      try { layers.push(await patternLayer(fig, type, item.fabric || item.photo)); continue; }
+      catch (e) { /* nepavyko – piešiam vienspalvį */ }
+    }
+    layers.push(await coloredLayer(fig, type, tint || item.color));
   }
   return { body, layers };
 }
@@ -983,7 +1036,9 @@ function restoreWardrobe() {
   wardrobe = list.filter(i => i && TYPES[i.type] && /^#[0-9a-f]{6}$/i.test(i.color) &&
       typeof i.photo === "string" && i.photo.startsWith("data:image/"))
     .map(i => ({ id: Number(i.id), name: String(i.name || TYPES[i.type].name), type: i.type,
-                 category: TYPES[i.type].category, color: i.color, photo: i.photo }));
+                 category: TYPES[i.type].category, color: i.color, photo: i.photo,
+                 fabric: typeof i.fabric === "string" && i.fabric.startsWith("data:image/") ? i.fabric : null,
+                 pattern: i.pattern !== false }));
 }
 
 function restore() {
@@ -1082,8 +1137,8 @@ function renderSaved() {
 // =====================================================================
 // MANO SPINTA – drabužio įkėlimas iš nuotraukos
 // Kas tikra: nuotrauka saugoma spintoje, spalva paimama iš nuotraukos.
-// Kas imitacija: ant avataro uždedama ne pati nuotrauka, o mūsų paruoštas
-// to tipo sluoksnis, nuspalvintas drabužio spalva.
+// Kas imitacija: ant avataro uždedama ne pati nuotrauka, o mūsų paruoštas to tipo sluoksnis,
+// užpildytas audiniu iš nuotraukos (raštas, spalvos) arba viena spalva. Kirpimas – pagal tipą, ne tikras.
 // =====================================================================
 const PHOTO_MAX = 240;   // nuotrauką sumažinam iki tiek taškų – kad tilptų atmintyje
 let draft = null;        // šiuo metu pildomas drabužis: { id, color, autoColor }
@@ -1126,6 +1181,37 @@ function detectColor(ctx, w, h) {
 
 function setDraftColor(hex) { draft.color = hex; $("itemColor").value = hex; }
 
+// Audinio pavyzdys: iš nuotraukos išrenkam drabužio vidurio kvadratą (be fono ir kraštų).
+// Fonas – spalvos, panašios į nuotraukos kraštus; drabužis – visa kita.
+function makeFabric(cv) {
+  const w = cv.width, h = cv.height, d = cv.getContext("2d").getImageData(0, 0, w, h).data;
+  const at = (x, y) => (y * w + x) * 4;
+  const bg = [0, 0, 0]; let n = 0;
+  const addBg = (x, y) => { const i = at(x, y); bg[0] += d[i]; bg[1] += d[i + 1]; bg[2] += d[i + 2]; n++; };
+  for (let x = 0; x < w; x++) { addBg(x, 0); addBg(x, h - 1); }
+  for (let y = 0; y < h; y++) { addBg(0, y); addBg(w - 1, y); }
+  bg.forEach((v, i) => bg[i] = v / n);
+  let x0 = w, y0 = h, x1 = 0, y1 = 0, cnt = 0;
+  for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) {
+    const i = at(x, y);
+    if (Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]) < 70) continue;
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); cnt++;
+  }
+  // Jei drabužio nuo fono atskirti nepavyko (pvz. baltas ant balto) – imam visos nuotraukos vidurį
+  if (cnt < 50 || x1 - x0 < 20 || y1 - y0 < 20) { x0 = 0; y0 = 0; x1 = w - 1; y1 = h - 1; }
+  const side = Math.max(16, Math.round(0.55 * Math.min(x1 - x0, y1 - y0)));
+  const cx = (x0 + x1) / 2, cy = y0 + (y1 - y0) * 0.45;   // šiek tiek aukščiau vidurio – ten dažniausiai raštas ar užrašas
+  const out = document.createElement("canvas");
+  out.width = out.height = 128;
+  out.getContext("2d").drawImage(cv, clamp(cx - side / 2, 0, w - side), clamp(cy - side / 2, 0, h - side), side, side, 0, 0, 128, 128);
+  return out.toDataURL("image/jpeg", 0.85);
+}
+function showFabric(src) {
+  const c = $("itemFabric").getContext("2d");
+  c.clearRect(0, 0, 96, 96);
+  if (src) loadImg(src).then(im => c.drawImage(im, 0, 0, 96, 96));
+}
+
 // Nupiešiam (sumažintą) nuotrauką formos lange
 function drawPhoto(img) {
   const k = Math.min(1, PHOTO_MAX / Math.max(img.width, img.height));
@@ -1143,6 +1229,9 @@ function openItemForm(img, item) {
   const auto = detectColor(ctx, $("itemPhoto").width, $("itemPhoto").height);
   draft = { id: item ? item.id : null, autoColor: auto };
   setDraftColor(item ? item.color : auto);
+  draft.fabric = (item && item.fabric) || makeFabric($("itemPhoto"));
+  showFabric(draft.fabric);
+  $("itemPattern").checked = item ? item.pattern !== false : true;
   // Tipų sąrašas, sugrupuotas pagal vietą ant kūno
   $("itemType").innerHTML = `<option value="">– pasirink –</option>` +
     Object.entries(CATEGORIES).map(([cat, catName]) => `<optgroup label="${catName}">` +
@@ -1163,7 +1252,7 @@ function saveItem() {
   const type = $("itemType").value;
   if (!type) { $("itemMsg").textContent = "Pasirink, koks tai drabužis."; return; }
   const name = $("itemName").value.trim() || TYPES[type].name;
-  const data = { name, type, category: TYPES[type].category, color: draft.color };
+  const data = { name, type, category: TYPES[type].category, color: draft.color, fabric: draft.fabric, pattern: $("itemPattern").checked };
   const before = JSON.stringify(wardrobe);
   let item = wardrobe.find(i => i.id === draft.id);
   if (item) {
