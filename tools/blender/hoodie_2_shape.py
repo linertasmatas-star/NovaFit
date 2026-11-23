@@ -76,7 +76,11 @@ arm = part == 1
 
 DBG = {}
 FRONTCHEST = torso & (B[:, 1] < -0.05) & (z > 1.05) & (z < 1.30) & (np.abs(B[:, 0]) < 0.15)
+NIP = torso & (np.abs(np.abs(B[:, 0]) - 0.10) < 0.03) & (np.abs(z - 1.16) < 0.03) & (B[:, 1] < -0.1)
 def bump(Q, tag):
+    A = Q.copy()
+    for _ in range(8): A = neighbor_avg(A)
+    DBG.setdefault("nip_" + tag, round(float(((A - Q)[:, 1])[NIP].max() * 1000), 2))
     nn = vnormals(Q)
     lap = ((Q - neighbor_avg(Q)) * nn).sum(1)[FRONTCHEST]
     i = int(np.argmax(lap)); vi = np.where(FRONTCHEST)[0][i]
@@ -173,6 +177,7 @@ def shape(P):
         sr_ = sr_ + ws * 0.5 * (neighbor_avg(sr_[:, None])[:, 0] - sr_)
     sr_ = np.maximum(sr_, (req - 0.002) * ws + sr_ * (1 - ws))
     Q[:, :2] = c + qd / qs[:, None] * sr_[:, None]
+    bump(Q, "2b_dome")
     bump(Sm, "1_Sm"); bump(Q, "2_shell")
     # 3) Audinio paviršių išlyginam pačiu (tankus tinklas ties speneliais nebeduoda „žiedų“)
     w = SHELL[:, None]
