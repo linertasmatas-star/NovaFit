@@ -94,17 +94,26 @@ def shape(P):
     zb = ((z - hem_z) / 0.015).astype(int)
     NZ = zb[torso].max() + 2
     E = np.zeros((NZ, NB))
+    rr = np.linalg.norm(d, axis=1)                       # tikras kūno spindulys (su speneliais)
+    Ereq = np.zeros((NZ, NB))
     for k in range(NZ):                       # 80-asis procentilis: maži iškilimai (speneliai) neįskaičiuojami
         mk = torso & (zb == k) & (np.abs(P[:, 0] - c[0]) < 0.19)
         for jb in range(NB):
             sel = mk & ((bi == jb) | (bi == (jb + 1) % NB) | (bi == (jb - 1) % NB))
             if sel.sum() >= 2:
                 E[k, jb] = np.percentile(r[sel], 95)
+                Ereq[k, jb] = rr[sel].max() + 0.004
     for _ in range(NB):                       # tuščios kryptys – iš kaimynų
         e0 = E == 0
         if not e0.any(): break
         nb = np.maximum(np.roll(E, 1, 1), np.roll(E, -1, 1))
         E[e0] = nb[e0]
+    # Kur kūnas kyšo (speneliai) – audinys ištempiamas plačiu, švelniu „tentu“, ne smulkiu guzu
+    D = Ereq.copy()
+    for _ in range(2):
+        D = np.maximum.reduce([D, np.roll(D, 1, 1), np.roll(D, -1, 1),
+                               np.vstack([D[1:], D[-1:]]), np.vstack([D[:1], D[:-1]])])
+    E = np.maximum(E, D)
     for _ in range(4):                        # lyginam aplink ir aukštyn
         E = (np.roll(E, 1, 1) + 2 * E + np.roll(E, -1, 1)) / 4
         E[1:-1] = (E[:-2] + 2 * E[1:-1] + E[2:]) / 4
