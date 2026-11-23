@@ -173,7 +173,8 @@ def shape(P):
     # krūtinėje – tik apvalkalas (jis skaičiuojamas erdviniu tinkleliu, todėl tankus kūno tinklas ties speneliu jo neveikia)
     cf = SHELL * smoothstep(1.02, 1.08, z)
     floor = (r + 0.006) * (1 - cf)
-    shellQ = np.column_stack([c + sd / sr[:, None] * np.maximum(shell_r, floor)[:, None], P[:, 2]])
+    shellQ = np.column_stack([c + sd / sr[:, None] * np.maximum(shell_r, floor)[:, None],
+                              P[:, 2] + (Sb[:, 2] - P[:, 2]) * smoothstep(1.02, 1.08, z) * smoothstep(1.30, 1.24, z)])
     Q = Q * (1 - SHELL[:, None]) + shellQ * SHELL[:, None]
     # Audinys užsitempia virš tikro kūno lygiu kupolu: spindulys ≥ odos + 5 mm, bet išlygintas (be smaigalių)
     qd = Q[:, :2] - c
