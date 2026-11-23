@@ -53,6 +53,7 @@ torso = part == 0
 hem_z = z[torso].min()
 CHEST = torso & (z > 1.17) & (z < 1.26) & (np.abs(B[:, 0]) < 0.13)   # be pažastų – kitaip apačia per plati
 DRAPE = smoothstep(1.17, 1.10, z) * torso           # žemiau krūtinės – krenta laisvai
+HANG = torso & (z < 1.26) & (np.abs(B[:, 0]) < 0.16)  # iš ko skaičiuojamas „kabantis“ kontūras (krūtinė, pilvas, sėdmenys)
 RIB = smoothstep(hem_z + 0.065, hem_z + 0.015, z) * torso   # apačios juosta
 BUST = torso & (z > 1.08) & (z < 1.36) & (B[:, 1] < 0.0)            # priekis (Blender: -Y)
 CUFF = (part == 1) & (apos > 0.925)
@@ -81,7 +82,7 @@ def shape(P):
     r = np.linalg.norm(d, axis=1) + 1e-9
     b = ((np.arctan2(d[:, 1], d[:, 0]) + math.pi) / (2 * math.pi) * NB).astype(int) % NB
     R = np.zeros(NB)
-    np.maximum.at(R, b[CHEST], r[CHEST])
+    np.maximum.at(R, b[HANG], r[HANG])                    # audinys kabo tiesiai: ne siauriau už plačiausią vietą
     for _ in range(3):                                    # užpildom tuščias kryptis
         R = np.maximum(R, np.maximum(np.roll(R, 1), np.roll(R, -1)) * (R == 0))
     R = np.maximum(R, (np.roll(R, 1) + np.roll(R, -1)) / 2 * 0.98)
