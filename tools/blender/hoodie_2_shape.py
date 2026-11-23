@@ -79,7 +79,8 @@ FRONTCHEST = torso & (B[:, 1] < -0.05) & (z > 1.05) & (z < 1.30) & (np.abs(B[:, 
 def bump(Q, tag):
     nn = vnormals(Q)
     lap = ((Q - neighbor_avg(Q)) * nn).sum(1)[FRONTCHEST]
-    DBG.setdefault(tag, round(float(lap.max() * 1000), 2))          # mm: kiek taškas iškilęs virš kaimynų
+    i = int(np.argmax(lap)); vi = np.where(FRONTCHEST)[0][i]
+    DBG.setdefault(tag, [round(float(lap.max() * 1000), 2), round(float(B[vi, 0]), 3), round(float(B[vi, 2]), 3), int(vi)])
 def shape(P):
     n = vnormals(P)
     bump(P, "0_body")
