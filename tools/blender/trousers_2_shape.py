@@ -123,13 +123,12 @@ def shape(P):
         for _ in range(3):
             E = (np.roll(E, 1, 1) + 2 * E + np.roll(E, -1, 1)) / 4
             E[1:-1] = (E[:-2] + 2 * E[1:-1] + E[2:]) / 4
-        # laisviau nei džinsai: daugiau oro aplink koją
-        E = E * 1.06 + 0.004
-        # nuo kelio žemyn – beveik tiesiai (tik 2 % platėja), ne siauriau už kelį
+        # truputį laisviau nei džinsai
+        E = E + 0.003
+        # nuo kelio žemyn – tiesiai, apačioje švelniai siaurėja (iki 92 % kelio), bet ne arčiau nei 1 cm nuo kojos
         knee = E[kk].copy()
         for k in range(kk, -1, -1):
-            knee = np.maximum(knee, E[k])
-            E[k] = np.maximum(E[k], knee * (1.0 + 0.02 * (kk - k) / kk))
+            E[k] = np.maximum(E[k] + 0.01, knee * (1.0 - 0.08 * (kk - k) / kk))
         # šlaunis: tiesi linija nuo tarpkojo iki kelio (audinys krenta, nesek kūno formos)
         kc = int((CROTCH - HEM) / DZ); kc = min(max(kc, kk + 1), NZ - 1)
         for k in range(kk + 1, kc + 1):
@@ -144,7 +143,7 @@ def shape(P):
         b0m, b1m = b0 % NB, (b0 + 1) % NB
         k1 = np.minimum(k0 + 1, NZ - 1)
         env = ((E[k0, b0m] * (1 - tb) + E[k0, b1m] * tb) * (1 - tz) + (E[k1, b0m] * (1 - tb) + E[k1, b1m] * tb) * tz)
-        new_r = np.maximum(env + thick, r + 0.008)
+        new_r = np.maximum(env + thick, r + 0.006)
         w = TUBE * L
         target = cz + d / r[:, None] * new_r[:, None]
         Q[:, :2] = Q[:, :2] * (1 - w[:, None]) + target * w[:, None]
