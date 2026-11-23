@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16151B">
-<title>NovaFit – demo v14</title>
+<title>NovaFit – demo v15</title>
 <!-- 3D avatarui: three.js biblioteka projekte (assets/lib/three), kraunama tik įjungus 3D -->
 <script type="importmap">{ "imports": { "three": "./assets/lib/three/three.module.js", "three/addons/": "./assets/lib/three/addons/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -171,6 +171,7 @@
   .item b { display:block; font-size:13px; line-height:18px; font-weight:600; margin-top:6px; }
   .item small { display:block; color:var(--muted); font-size:13px; line-height:18px; }
   .item .tag { position:absolute; top:10px; left:10px; background:rgba(22,21,27,.85); }
+  .item .tag.t3d { background:var(--accent-soft); color:var(--accent-text); font-weight:600; }
   .item.own { padding:0; }
   .item.own.worn { padding:0; }
   .item.own .open { width:100%; border:0; background:none; padding:6px; text-align:left; color:inherit; }
@@ -464,33 +465,33 @@ const CATALOG = [
   { id:1,  name:"Balti marškinėliai",   category:"top",    type:"tshirt",   color:"#f4f4f4", style:"Kasdienis" },
   { id:2,  name:"Juodi marškinėliai",   category:"top",    type:"tshirt",   color:"#2b2b2b", style:"Kasdienis" },
   { id:3,  name:"Smėlinis megztinis",   category:"top",    type:"sweater",  color:"#d8c3a0", style:"Kasdienis" },
-  { id:15, name:"Žalias džemperis",     category:"top",    type:"sweater",  color:"#6f8f5e", style:"Sportinis" },
+  { id:15, name:"Žalias megztinis",      category:"top",    type:"sweater",  color:"#6f8f5e", style:"Sportinis" },
   { id:20, name:"Pilkas džemperis su kapišonu", category:"top", type:"hoodie", color:"#8a8d93", style:"Sportinis" },
   { id:21, name:"Juodas džemperis su kapišonu", category:"top", type:"hoodie", color:"#2b2b2b", style:"Kasdienis" },
   { id:16, name:"Balti laisvi marškinėliai", category:"top", type:"oversize", color:"#f4f4f4", style:"Kasdienis" },
   { id:17, name:"Juodi laisvi marškinėliai", category:"top", type:"oversize", color:"#2b2b2b", style:"Kasdienis" },
-  { id:4,  name:"Žydri marškiniai",     category:"top",    type:"shirt",    color:"#a9c8ea", style:"Elegantiškas" },
+  { id:4,  name:"Žydri marškiniai",     category:"top",    type:"shirt",    color:"#a9c8ea", style:"Elegantiškas", old:true },
   { id:5,  name:"Klasikiniai džinsai",  category:"bottom", type:"jeans",    color:"#3d5a80", style:"Kasdienis" },
   { id:22, name:"Šviesūs džinsai",      category:"bottom", type:"jeans",    color:"#7393b8", style:"Kasdienis" },
-  { id:18, name:"Platūs džinsai",       category:"bottom", type:"widepants", color:"#5b7fa8", style:"Kasdienis" },
-  { id:19, name:"Smėlinės plačios kelnės", category:"bottom", type:"widepants", color:"#cdb891", style:"Kasdienis" },
-  { id:6,  name:"Juodos kelnės",        category:"bottom", type:"pants",    color:"#262626", style:"Elegantiškas" },
-  { id:7,  name:"Pilki šortai",         category:"bottom", type:"shorts",   color:"#9a9a9a", style:"Sportinis" },
-  { id:8,  name:"Bordo sijonas",        category:"bottom", type:"skirt",    color:"#7a2335", style:"Elegantiškas" },
+  { id:18, name:"Platūs džinsai",       category:"bottom", type:"widepants", color:"#5b7fa8", style:"Kasdienis", old:true },
+  { id:19, name:"Smėlinės plačios kelnės", category:"bottom", type:"widepants", color:"#cdb891", style:"Kasdienis", old:true },
+  { id:6,  name:"Juodos kelnės",        category:"bottom", type:"pants",    color:"#262626", style:"Elegantiškas", old:true },
+  { id:7,  name:"Pilki šortai",         category:"bottom", type:"shorts",   color:"#9a9a9a", style:"Sportinis", old:true },
+  { id:8,  name:"Bordo sijonas",        category:"bottom", type:"skirt",    color:"#7a2335", style:"Elegantiškas", old:true },
   { id:9,  name:"Balti sportbačiai",    category:"shoes",  type:"sneakers", color:"#ffffff", style:"Sportinis" },
-  { id:10, name:"Rudi batai",           category:"shoes",  type:"boots",    color:"#6b4226", style:"Kasdienis" },
-  { id:11, name:"Džinsinė striukė",     category:"outer",  type:"jacket",   color:"#5b7fa8", style:"Kasdienis" },
-  { id:12, name:"Smėlinis paltas",      category:"outer",  type:"coat",     color:"#c19a6b", style:"Elegantiškas" },
-  { id:13, name:"Juoda kepuraitė",      category:"hat",    type:"cap",      color:"#222222", style:"Sportinis" },
-  { id:14, name:"Žalia kepurė",         category:"hat",    type:"beanie",   color:"#4f7a5a", style:"Kasdienis" },
+  { id:10, name:"Rudi batai",           category:"shoes",  type:"boots",    color:"#6b4226", style:"Kasdienis", old:true },
+  { id:11, name:"Džinsinė striukė",     category:"outer",  type:"jacket",   color:"#5b7fa8", style:"Kasdienis", old:true },
+  { id:12, name:"Smėlinis paltas",      category:"outer",  type:"coat",     color:"#c19a6b", style:"Elegantiškas", old:true },
+  { id:13, name:"Juoda kepuraitė",      category:"hat",    type:"cap",      color:"#222222", style:"Sportinis", old:true },
+  { id:14, name:"Žalia kepurė",         category:"hat",    type:"beanie",   color:"#4f7a5a", style:"Kasdienis", old:true },
 
   // REMIAMI drabužiai – taip NovaFit uždirbtų: prekės ženklas moka komisinį, kai vartotojas nueina į parduotuvę.
   // DĖMESIO: prekės ženklas, kainos ir drabužiai čia IŠGALVOTI (demonstracija). Kai tikras ženklas sutiks –
   // pakeisti brand, price ir pridėti url (parduotuvės nuorodą).
   { id:101, name:"Alyvinis džemperis",      category:"top",    type:"sweater", color:"#b7a4e0", style:"Kasdienis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"39 €" },
-  { id:102, name:"Tamsiai žali marškiniai", category:"top",    type:"shirt",   color:"#2f5d4a", style:"Elegantiškas", sponsored:true, brand:"Pavyzdinis ženklas", price:"45 €" },
+  { id:102, name:"Tamsiai žali marškiniai", category:"top",    type:"shirt",   color:"#2f5d4a", style:"Elegantiškas", sponsored:true, brand:"Pavyzdinis ženklas", price:"45 €", old:true },
   { id:103, name:"Mėtiniai marškinėliai",   category:"top",    type:"tshirt",  color:"#9ed8c3", style:"Sportinis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"19 €" },
-  { id:104, name:"Smėlinės kelnės",         category:"bottom", type:"pants",   color:"#cdb891", style:"Kasdienis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"49 €" }
+  { id:104, name:"Smėlinės kelnės",         category:"bottom", type:"pants",   color:"#cdb891", style:"Kasdienis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"49 €", old:true }
 ];
 
 // Drabužių tipai, kuriuos mokam uždėti ant avataro (kiekvienam yra sluoksnio failas).
@@ -716,6 +717,10 @@ const THUMB_VIEW = {
 // =====================================================================
 const $ = id => document.getElementById(id);
 // Drabužį randam pagal id – ir kataloge, ir mano spintoje
+// Rodomi drabužiai: senieji (old:true) paslėpti – juos keičia Blenderyje sukurti 3D drabužiai. Išsaugotuose deriniuose jie vis dar veikia.
+const shown = () => CATALOG.filter(i => !i.old);
+const MODEL_TYPES = ["hoodie", "sweater", "jeans"];        // turi tikrą 3D modelį (assets/avatar3d/<tipas>.glb)
+const is3d = i => MODEL_TYPES.includes(i.type);
 const byId = id => CATALOG.find(i => i.id === id) || wardrobe.find(i => i.id === id);
 
 function renderTabs() {
@@ -725,7 +730,10 @@ function renderTabs() {
 }
 
 function renderFilters() {
-  const all = { all: "Visi", ...CATEGORIES };
+  // rodom tik kategorijas, kuriose yra drabužių (senieji paslėpti – striukių, kepurių kol kas nėra)
+  const used = new Set([...shown(), ...wardrobe].map(i => i.category));
+  if (!used.has(state.filter)) state.filter = "all";
+  const all = { all: "Visi", ...Object.fromEntries(Object.entries(CATEGORIES).filter(([k]) => used.has(k))) };
   $("filters").innerHTML = Object.entries(all).map(([key, name]) =>
     `<button class="chip ${state.filter === key ? "active" : ""}" data-filter="${key}">${name}</button>`).join("");
 }
@@ -733,11 +741,12 @@ function renderFilters() {
 function renderCatalog() {
   if (state.tab === "mine") { renderWardrobe(); return; }
   const b = BODY_SHAPES.medium;
-  const items = CATALOG.filter(i => state.filter === "all" || i.category === state.filter);
+  const items = shown().filter(i => state.filter === "all" || i.category === state.filter)
+    .sort((a, b) => is3d(b) - is3d(a));
   $("catalog").innerHTML = items.map(i => `
     <button class="item ${state.worn[i.category] === i.id ? "worn" : ""}" data-item="${i.id}">
       <canvas class="thumb" width="236" height="168" data-thumbitem="${i.id}"></canvas>
-      ${i.sponsored ? `<em class="tag">Remiama</em>` : ""}
+      ${i.sponsored ? `<em class="tag">Remiama</em>` : is3d(i) ? `<em class="tag t3d">3D</em>` : ""}
       <b>${i.name}</b><small>${i.sponsored ? `${i.brand} · ${i.price}` : `${CATEGORIES[i.category]} · ${i.style}`}</small>
     </button>`).join("");
   // Miniatiūros piešiamos iš tų pačių sluoksnių, kurie uždedami ant avataro
@@ -761,7 +770,21 @@ const THUMB_BOX = {
 const SHOE_W = { female: { sneakers:43, boots:44 }, male: { sneakers:45, boots:52 } };
 // Kuriuo 2D sluoksniu piešiamas tipas (kai atskiro 2D sluoksnio nėra)
 const layer2d = type => (TYPES[type] && TYPES[type].layer) || type;
+const thumb3dCache = {};
+function loadImg(src) {
+  return thumb3dCache[src] || (thumb3dCache[src] = new Promise((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = bad; im.src = src; }));
+}
 async function paintThumb(cv, item) {
+  if (is3d(item)) {
+    const im = await loadImg(`assets/thumbs3d/${state.gender}-${item.type}.png`);
+    const ctx = cv.getContext("2d");
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.globalCompositeOperation = "source-over"; ctx.drawImage(im, 0, 0, cv.width, cv.height);
+    ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = item.color; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.globalCompositeOperation = "destination-in"; ctx.drawImage(im, 0, 0, cv.width, cv.height);
+    ctx.globalCompositeOperation = "source-over";
+    return;
+  }
   const gender = state.gender, t = layer2d(item.type);
   const layer = await coloredLayer(`${gender}-w2`, t, item.color);
   const [x, y, w, h] = THUMB_BOX[gender][t];
@@ -1414,7 +1437,7 @@ function suggestOutfits(occasion) {
     const mine = wardrobe.filter(i => i.category === cat && fits(i));
     const good = mine.filter(i => rule.fit[i.type] >= 2);
     // Remiami drabužiai į patį derinį nepatenka – jie siūlomi atskirai, su aiškia žyma
-    options[cat] = good.length ? good : [...mine, ...CATALOG.filter(i => i.category === cat && fits(i) && !i.sponsored)];
+    options[cat] = good.length ? good : [...mine, ...shown().filter(i => i.category === cat && fits(i) && !i.sponsored)];
     if (cat === "outer" || cat === "hat") options[cat] = [...options[cat], null];   // galima ir be jų
   }
   const results = [];
@@ -1476,7 +1499,7 @@ function applyStylist(occasion, index) {
 function pickSponsored(occasion, outfit) {
   const rule = OCCASIONS[occasion];
   let best = null;
-  for (const item of CATALOG.filter(i => i.sponsored && rule.fit[i.type] >= 2)) {
+  for (const item of shown().filter(i => i.sponsored && rule.fit[i.type] >= 2)) {
     const others = outfit.filter(o => o.category !== item.category);
     const colors = others.reduce((sum, o) => sum + pairScore(item.color, o.color), 0) / Math.max(1, others.length);
     // Pirmenybė vietoms, kur vartotojas savo drabužio neturi (ten derinį užpildė katalogas)

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<title>NovaFit – 3D drabužių miniatiūros</title>
+<!-- Tik kūrėjams: nupiešia Blenderyje sukurtų drabužių miniatiūras (balti, be fono) į assets/thumbs3d/.
+     Paleidžiama automatiškai (tools/make_thumbs3d.py), rankomis nereikia. -->
+<style>body { margin:0; background:transparent; } canvas { display:block; }</style>
+<script type="importmap">{ "imports": { "three": "../assets/lib/three/three.module.js", "three/addons/": "../assets/lib/three/addons/" } }</script>
+</head>
+<body>
+<canvas id="c" width="472" height="336"></canvas>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+const cv = document.getElementById("c");
+const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setClearColor(0x000000, 0);
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0x6a6772, 1.05));
+const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(-1.2, 2, 3); scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 0.6); fill.position.set(2, 1, 1); scene.add(fill);
+const cache = {};
+window.drawThumb = async (type, gender) => {
+  if (!cache[type]) cache[type] = (await new GLTFLoader().loadAsync(`../assets/avatar3d/${type}.glb`)).scene;
+  const root = cache[type];
+  scene.children.filter(o => o.isGroup || o.isMesh).forEach(o => scene.remove(o));
+  scene.add(root);
+  let mesh = null; root.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
+  mesh.material = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+  const dict = mesh.morphTargetDictionary || {};
+  mesh.morphTargetInfluences.fill(0);
+  if (gender === "male" && dict.male !== undefined) mesh.morphTargetInfluences[dict.male] = 1;
+  mesh.updateMatrixWorld(true);
+  // ribos su formomis: apskaičiuojam per kelis taškus
+  const pos = mesh.geometry.attributes.position, box = new THREE.Box3(), v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i += 3) { mesh.getVertexPosition(i, v); box.expandByPoint(v); }
+  const size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+  const aspect = cv.width / cv.height;
+  const halfH = Math.max(size.y / 2, size.x / 2 / aspect) * 1.06;
+  const cam = new THREE.OrthographicCamera(-halfH * aspect, halfH * aspect, halfH, -halfH, 0.01, 20);
+  cam.position.set(ctr.x, ctr.y, ctr.z + 5); cam.lookAt(ctr);
+  renderer.render(scene, cam);
+  return cv.toDataURL("image/png");
+};
+window.ready = true;
+</script>
+</body>
+</html>
