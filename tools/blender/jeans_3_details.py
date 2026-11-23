@@ -106,8 +106,8 @@ for s in (-1, 1):
     curve = []
     for i in range(12):
         t = i / 11
-        x = s * (0.46 * HW + 0.42 * HW * (1 - math.cos(t * math.pi / 2)))
-        zz = TOP - 0.042 - 0.085 * math.sin(t * math.pi / 2)
+        x = s * (0.42 * HW + 0.52 * HW * math.sin(t * math.pi / 2))      # nuo juosmens – žemyn į šoną
+        zz = TOP - 0.042 - 0.08 * (1 - math.cos(t * math.pi / 2))
         curve.append((x, zz))
     strip(curve, "front", 0.0035)
 cx, top, w, h = 0.66 * HW, TOP - 0.048, 0.045, 0.038

@@ -53,6 +53,16 @@ def neighbor_avg(P):
     acc = np.zeros_like(P)
     np.add.at(acc, edges[:, 0], P[edges[:, 1]]); np.add.at(acc, edges[:, 1], P[edges[:, 0]])
     return acc / deg[:, None]
+def convex_hull(p):
+    p = p[np.lexsort((p[:, 1], p[:, 0]))]
+    def half(pts):
+        h = []
+        for q in pts:
+            while len(h) >= 2 and np.cross(h[-1] - h[-2], q - h[-2]) <= 0: h.pop()
+            h.append(q)
+        return h
+    lo, up = half(p), half(p[::-1])
+    return np.array(lo[:-1] + up[:-1])
 def smoothstep(a, b, x):
     t = np.clip((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
 
@@ -137,6 +147,25 @@ def shape(P):
         w = TUBE * L
         target = cz + d / r[:, None] * new_r[:, None]
         Q[:, :2] = Q[:, :2] * (1 - w[:, None]) + target * w[:, None]
+    # --- Klubai: audinys įsitempia tiesiai per įdubas (sėdmenų tarpą, tarpkojį) – iškilas apvalkalas kiekviename aukštyje ---
+    HIP = smoothstep(CROTCH - 0.005, CROTCH + 0.03, z0)
+    hm = HIP > 0
+    zb = np.round((z0 - CROTCH) / 0.01).astype(int)
+    for k in np.unique(zb[hm]):
+        m = hm & (zb == k)
+        if m.sum() < 6: continue
+        pts = Q[m, :2]
+        c = pts.mean(0)
+        hull = convex_hull(pts)
+        dense = np.concatenate([hull[i] + (hull[(i + 1) % len(hull)] - hull[i]) * t[:, None]
+                                for i in range(len(hull)) for t in [np.linspace(0, 1, 8, endpoint=False)]])
+        da = np.arctan2(dense[:, 1] - c[1], dense[:, 0] - c[0]); dr = np.linalg.norm(dense - c, axis=1)
+        o = np.argsort(da); da, dr = da[o], dr[o]
+        va = np.arctan2(pts[:, 1] - c[1], pts[:, 0] - c[0]); vr = np.linalg.norm(pts - c, axis=1) + 1e-9
+        hr = np.interp(va, da, dr, period=2 * math.pi)
+        nr_ = np.maximum(vr, hr)
+        w = HIP[m][:, None]
+        Q[m, :2] = pts + (pts - c) / vr[:, None] * ((nr_ - vr)[:, None] * w)
     # --- Audinio paviršių išlyginam (be kraštų) ---
     wq = (~rim).astype(np.float32)[:, None] * 0.9
     for it in range(60):
