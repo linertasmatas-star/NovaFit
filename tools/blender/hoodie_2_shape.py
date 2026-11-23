@@ -85,7 +85,25 @@ def bump(Q, tag):
     lap = ((Q - neighbor_avg(Q)) * nn).sum(1)[FRONTCHEST]
     i = int(np.argmax(lap)); vi = np.where(FRONTCHEST)[0][i]
     DBG.setdefault(tag, [round(float(lap.max() * 1000), 2), round(float(B[vi, 0]), 3), round(float(B[vi, 2]), 3), int(vi)])
+CLEAN = (torso * smoothstep(0.90, 0.95, z) * smoothstep(1.34, 1.29, z)).astype(np.float32)
+def clean_body(P):
+    """Krūtinėje ir pilve kūną išlyginam erdviškai (~1,2 cm): speneliai ir bamba dingsta, krūtinės forma lieka."""
+    ti_ = np.where(CLEAN > 0)[0]
+    T = P[ti_]
+    fa = np.linalg.norm(np.cross(P[tri[:, 1]] - P[tri[:, 0]], P[tri[:, 2]] - P[tri[:, 0]]), axis=1) / 6
+    va_ = np.zeros(nv)
+    for j in range(3): np.add.at(va_, tri[:, j], fa)
+    S = T.copy()
+    for a0 in range(0, len(ti_), 400):
+        blk = T[a0:a0 + 400]
+        wgt = np.exp(-((blk[:, None, :] - T[None, :, :]) ** 2).sum(2) / (2 * 0.012 ** 2)) * va_[ti_][None, :]
+        S[a0:a0 + 400] = (wgt @ T) / wgt.sum(1, keepdims=True)
+    P = P.copy()
+    m = CLEAN[ti_][:, None]
+    P[ti_] = T * (1 - m) + S * m
+    return P
 def shape(P):
+    P = clean_body(P)
     n = vnormals(P)
     bump(P, "0_body")
     # 1) Rankovės ir pečiai: išlygintas paviršius, atitrauktas nuo odos (smulkmenų nebelieka)
@@ -209,6 +227,8 @@ def shape(P):
     w = SHELL[:, None]
     for it in range(60):
         Q += w * (0.5 if it % 2 == 0 else -0.52) * (neighbor_avg(Q) - Q)
+    for _ in range(25):
+        Q += w * 0.5 * (neighbor_avg(Q) - Q)
     # Erdvinis audinio išlyginimas krūtinėje ir pilve (~1,5 cm): tankiame tinkle mažyčiai trikampiai susilygina
     Tq = Q[ti]
     vaq = va[ti]
