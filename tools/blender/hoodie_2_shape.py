@@ -67,7 +67,10 @@ thick[FOLD] += 0.006 * (0.5 + 0.5 * np.sin(w * math.pi * 5)) * np.sin(w * math.p
 
 NB = 64
 ARMPIT_Z = 1.27
-SHELL = torso * smoothstep(ARMPIT_Z + 0.06, ARMPIT_Z - 0.02, z)   # liemuo žemiau pažastų – lygus apvalkalas
+X = B[:, 0]; _cx = float(np.median(X[torso]))
+# Krūtinės priekis (iki raktikaulių) irgi lygus – speneliai patenka į apvalkalą, ne į pereinamąją zoną
+FRONT = smoothstep(ARMPIT_Z + 0.15, ARMPIT_Z + 0.09, z) * smoothstep(0.16, 0.11, np.abs(X - _cx))
+SHELL = torso * np.maximum(smoothstep(ARMPIT_Z + 0.06, ARMPIT_Z - 0.02, z), FRONT)
 arm = part == 1
 
 def shape(P):
