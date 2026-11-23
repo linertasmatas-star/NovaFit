@@ -143,10 +143,11 @@ def shape(P):
     env = ((E[k0, b0m] * (1 - tb) + E[k0, b1m] * tb) * (1 - tz) +
            (E[np.minimum(k0 + 1, NZ - 1), b0m] * (1 - tb) + E[np.minimum(k0 + 1, NZ - 1), b1m] * tb) * tz)
     shell_r = env + thick
-    qd = Q[:, :2] - c
-    qr = np.linalg.norm(qd, axis=1) + 1e-9
-    new_r = qr * (1 - SHELL) + np.maximum(shell_r, r + 0.006) * SHELL
-    Q[:, :2] = c + qd / qr[:, None] * new_r[:, None]
+    # Apvalkalo taškų kryptis ir aukštis – iš išlyginto kūno (ne iš odos normalių: ties speneliu jos „išsiskleidžia“)
+    sd = Sm[:, :2] - c
+    sr = np.linalg.norm(sd, axis=1) + 1e-9
+    shellQ = np.column_stack([c + sd / sr[:, None] * np.maximum(shell_r, r + 0.006)[:, None], Sm[:, 2]])
+    Q = Q * (1 - SHELL[:, None]) + shellQ * SHELL[:, None]
     bump(Sm, "1_Sm"); bump(Q, "2_shell")
     # 3) Audinio paviršių išlyginam pačiu (tankus tinklas ties speneliais nebeduoda „žiedų“)
     w = SHELL[:, None]
