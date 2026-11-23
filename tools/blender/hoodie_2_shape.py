@@ -113,7 +113,7 @@ def shape(P):
     for _ in range(2):
         D = np.maximum.reduce([D, np.roll(D, 1, 1), np.roll(D, -1, 1),
                                np.vstack([D[1:], D[-1:]]), np.vstack([D[:1], D[:-1]])])
-    E = np.maximum(E, D)
+    E = np.maximum(E, 0.5 * (E + D))                     # tik pusė – kad nebūtų gumbų
     for _ in range(4):                        # lyginam aplink ir aukštyn
         E = (np.roll(E, 1, 1) + 2 * E + np.roll(E, -1, 1)) / 4
         E[1:-1] = (E[:-2] + 2 * E[1:-1] + E[2:]) / 4
@@ -138,9 +138,18 @@ def shape(P):
     qr = np.linalg.norm(qd, axis=1) + 1e-9
     new_r = qr * (1 - SHELL) + np.maximum(shell_r, r + 0.006) * SHELL
     Q[:, :2] = c + qd / qr[:, None] * new_r[:, None]
-    # 3) Niekur arčiau nei 6 mm nuo odos
-    dn = ((Q - P) * n).sum(1)
-    Q += n * np.maximum(0.006 - dn, 0)[:, None]
+    # 3) Audinio paviršių išlyginam pačiu (tankus tinklas ties speneliais nebeduoda „žiedų“)
+    w = SHELL[:, None]
+    for it in range(60):
+        Q += w * (0.5 if it % 2 == 0 else -0.52) * (neighbor_avg(Q) - Q)
+    # 4) Niekur arčiau nei 6 mm nuo odos (liemenyje – nuo išlyginto kūno, kad nekiltų smulkūs guzai)
+    ref = P * (1 - w) + Sm * w
+    nr = vnormals(ref)
+    dn = ((Q - ref) * nr).sum(1)
+    push = np.maximum(0.006 - dn, 0)
+    for _ in range(6):                                   # stūmimą paskleidžiam plačiau
+        push = np.maximum(push, 0.8 * neighbor_avg(push[:, None])[:, 0])
+    Q += nr * push[:, None]
     return Q
 
 out = {}
