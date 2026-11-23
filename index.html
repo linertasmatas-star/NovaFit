@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16151B">
-<title>NovaFit – demo v10</title>
+<title>NovaFit – demo v11</title>
 <!-- 3D avatarui: three.js biblioteka projekte (assets/lib/three), kraunama tik įjungus 3D -->
 <script type="importmap">{ "imports": { "three": "./assets/lib/three/three.module.js", "three/addons/": "./assets/lib/three/addons/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -465,6 +465,8 @@ const CATALOG = [
   { id:2,  name:"Juodi marškinėliai",   category:"top",    type:"tshirt",   color:"#2b2b2b", style:"Kasdienis" },
   { id:3,  name:"Smėlinis megztinis",   category:"top",    type:"sweater",  color:"#d8c3a0", style:"Kasdienis" },
   { id:15, name:"Žalias džemperis",     category:"top",    type:"sweater",  color:"#6f8f5e", style:"Sportinis" },
+  { id:20, name:"Pilkas džemperis su kapišonu", category:"top", type:"hoodie", color:"#8a8d93", style:"Sportinis" },
+  { id:21, name:"Juodas džemperis su kapišonu", category:"top", type:"hoodie", color:"#2b2b2b", style:"Kasdienis" },
   { id:16, name:"Balti laisvi marškinėliai", category:"top", type:"oversize", color:"#f4f4f4", style:"Kasdienis" },
   { id:17, name:"Juodi laisvi marškinėliai", category:"top", type:"oversize", color:"#2b2b2b", style:"Kasdienis" },
   { id:4,  name:"Žydri marškiniai",     category:"top",    type:"shirt",    color:"#a9c8ea", style:"Elegantiškas" },
@@ -496,6 +498,8 @@ const TYPES = {
   tshirt:   { name:"Marškinėliai (aptempti)", category:"top" },
   oversize: { name:"Laisvi (oversize) marškinėliai", category:"top" },
   sweater:  { name:"Megztinis / džemperis", category:"top" },
+  // Džemperis su kapišonu: 3D – Blenderyje sukurtas modelis (assets/avatar3d/hoodie.glb), 2D – rodomas megztinio sluoksniu
+  hoodie:   { name:"Džemperis su kapišonu", category:"top", layer:"sweater" },
   shirt:    { name:"Marškiniai",            category:"top" },
   pants:    { name:"Siauros kelnės / džinsai", category:"bottom" },
   widepants:{ name:"Plačios kelnės / džinsai", category:"bottom" },
@@ -752,11 +756,13 @@ const THUMB_BOX = {
 };
 // Batai sluoksnyje stovi toli vienas nuo kito – miniatiūroje juos sustatom greta. Čia vieno bato plotis.
 const SHOE_W = { female: { sneakers:43, boots:44 }, male: { sneakers:45, boots:52 } };
+// Kuriuo 2D sluoksniu piešiamas tipas (kai atskiro 2D sluoksnio nėra)
+const layer2d = type => (TYPES[type] && TYPES[type].layer) || type;
 async function paintThumb(cv, item) {
-  const gender = state.gender;
-  const layer = await coloredLayer(`${gender}-w2`, item.type, item.color);
-  const [x, y, w, h] = THUMB_BOX[gender][item.type];
-  const shoe = SHOE_W[gender][item.type];
+  const gender = state.gender, t = layer2d(item.type);
+  const layer = await coloredLayer(`${gender}-w2`, t, item.color);
+  const [x, y, w, h] = THUMB_BOX[gender][t];
+  const shoe = SHOE_W[gender][t];
   // Gabalai, kuriuos iškerpam iš sluoksnio: visas drabužis arba du batai atskirai
   const parts = shoe ? [[x, shoe], [x + w - shoe, shoe]] : [[x, w]];
   const gap = 10, total = parts.reduce((sum, p) => sum + p[1], 0) + gap * (parts.length - 1);
@@ -949,7 +955,8 @@ async function prepareAvatar(cfg) {
     if (!item) continue;
     // Po striuke ar paltu laisvi marškinėliai „susispaudžia“ – kitaip kyšotų pro šonus.
     // Todėl tada piešiam įprastų marškinėlių sluoksnį.
-    const type = item.type === "oversize" && cfg.worn.outer ? "tshirt" : item.type;
+    let type = item.type === "oversize" && cfg.worn.outer ? "tshirt" : item.type;
+    type = layer2d(type);                                // pvz. džemperis su kapišonu 2D – megztinio sluoksnis
     const tint = cfg.tint && cfg.tint[cat];   // spalvos peržiūra, jei pasirinkta
     if (!tint && item.pattern !== false && (item.fabric || item.photo) && isMine(item.id)) {
       try { layers.push(await patternLayer(fig, type, item.fabric || item.photo)); continue; }
@@ -1341,10 +1348,10 @@ function renderWornList() {
 // skip – kiek „verta“ striukės ar kepurės nedėti visai (kuo daugiau, tuo rečiau dedama).
 const OCCASIONS = {
   school: { name:"Mokykla / kasdien", short:"Mokykla", word:"MOKYKLA", intro:"Patogus derinys kiekvienai dienai.", style:"Kasdienis",
-            fit:{ tshirt:2, oversize:3, sweater:3, shirt:1, pants:3, widepants:3, skirt:2, shorts:1, sneakers:3, boots:2, jacket:2, coat:1, beanie:1, cap:1 },
+            fit:{ tshirt:2, oversize:3, sweater:3, hoodie:3, shirt:1, pants:3, widepants:3, skirt:2, shorts:1, sneakers:3, boots:2, jacket:2, coat:1, beanie:1, cap:1 },
             skip:{ outer:1, hat:2 } },
   sport:  { name:"Sportas", short:"Sportas", word:"SPORTAS", intro:"Laisvi, judesių nevaržantys drabužiai.", style:"Sportinis",
-            fit:{ tshirt:3, oversize:2, sweater:2, shorts:3, pants:1, widepants:1, sneakers:3, cap:2 },
+            fit:{ tshirt:3, oversize:2, sweater:2, hoodie:3, shorts:3, pants:1, widepants:1, sneakers:3, cap:2 },
             skip:{ outer:0, hat:1.5 } },
   party:  { name:"Šventė / išėjimas", short:"Šventė", word:"ŠVENTĖ", intro:"Puošnesnis, tvarkingas derinys.", style:"Elegantiškas",
             fit:{ shirt:3, sweater:1, tshirt:1, oversize:1, pants:3, widepants:2, skirt:3, boots:3, sneakers:1, coat:2, jacket:1 },
