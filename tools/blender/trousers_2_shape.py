@@ -13,7 +13,7 @@ if cur is not None:
     bpy.data.objects.remove(cur, do_unlink=True)
 jn = src.copy(); jn.data = src.data.copy(); jn.name = "trousers"; jn.data.name = "trousers"
 bpy.context.collection.objects.link(jn)
-jn.hide_set(False)
+jn.hide_set(False); jn.hide_render = False
 me = jn.data
 kb = me.shape_keys.key_blocks
 nv = len(me.vertices)
