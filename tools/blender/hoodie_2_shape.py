@@ -5,15 +5,16 @@ Kiekviena iš 14 formų (Basis + 13) apskaičiuojama atskirai, todėl džemperis
 """
 import bpy, numpy as np, math
 
-src = bpy.data.objects.get("hoodie_src")
-cur = bpy.data.objects.get("hoodie")
+NAME = globals().get("NAME", "hoodie")   # tas pats ir megztiniui (NAME="sweater")
+src = bpy.data.objects.get(NAME + "_src")
+cur = bpy.data.objects.get(NAME)
 if src is None:                       # pirmas kartas – išsaugom 1 žingsnio rezultatą
-    src = cur.copy(); src.data = cur.data.copy(); src.name = "hoodie_src"
+    src = cur.copy(); src.data = cur.data.copy(); src.name = NAME + "_src"
     bpy.context.collection.objects.link(src)
 src.hide_set(True); src.hide_render = True
 if cur is not None:
     bpy.data.objects.remove(cur, do_unlink=True)
-hd = src.copy(); hd.data = src.data.copy(); hd.name = "hoodie"; hd.data.name = "hoodie"
+hd = src.copy(); hd.data = src.data.copy(); hd.name = NAME; hd.data.name = NAME
 bpy.context.collection.objects.link(hd)
 hd.hide_set(False)
 me = hd.data
