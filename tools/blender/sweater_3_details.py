@@ -32,8 +32,8 @@ neck = neck[np.argsort(np.arctan2(B[neck, 1] - c0[1], B[neck, 0] - c0[0]))]
 NN = len(neck)
 
 # Apykaklės profilis (spindulio dalis nuo kaklo krašto, aukštis m): kyla, apsivynioja ir grįžta į vidų
-PROF = [(1.000, 0.000), (1.010, 0.007), (1.005, 0.014), (0.985, 0.020), (0.955, 0.024),
-        (0.925, 0.022), (0.910, 0.014), (0.905, 0.004)]
+PROF = [(1.000, 0.000), (1.008, 0.005), (1.002, 0.010), (0.985, 0.014), (0.962, 0.015),
+        (0.945, 0.011), (0.938, 0.004)]
 NR = len(PROF)
 
 def build(P):
