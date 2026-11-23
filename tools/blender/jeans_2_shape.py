@@ -160,5 +160,6 @@ for k in kb:
         me.vertices.foreach_set("co", Q.astype(np.float32).ravel())
 me.update()
 jn.color = (0.24, 0.35, 0.5, 1)
+jn["crotch"] = float(CROTCH)                              # 3 žingsniui (užtrauktuko ilgis)
 result = {"verts": nv, "top": round(float(TOP), 3), "crotch": round(float(CROTCH), 3),
           "knee": round(float(KNEE_Z), 3), "hem": round(float(HEM), 3)}

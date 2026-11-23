@@ -27,7 +27,7 @@ def vnormals(P):
 K = {k.name: getco(k) for k in kb}
 B = K["Basis"]
 TOP = float(B[:, 2].max())
-CROTCH = float(B[np.abs(B[:, 0]) < 0.012, 2].min())
+CROTCH = float(jn.get("crotch", TOP - 0.2))
 hip = (B[:, 2] > TOP - 0.16) & (B[:, 2] < TOP - 0.05)
 HW = float(np.abs(B[hip, 0]).max())                # pusė klubų pločio
 CY = float(np.median(B[hip, 1]))                   # klubų centras (priekis–nugara)
@@ -73,7 +73,7 @@ def panel(pts, side, off, wrap=False, edge=0.0008):
             u1 = (u + 1) % NU
             faces.append((ids[v][u], ids[v][u1], ids[v + 1][u1], ids[v + 1][u]))
 
-def strip(curve, side, off, half=0.0035):
+def strip(curve, side, off, half=0.0045):
     """Siūlės / krašto iškilimas palei kreivę (3 eilės: kraštas – iškilęs vidurys – kraštas)."""
     c = np.array(curve)
     tg = np.gradient(c, axis=0); tg /= np.linalg.norm(tg, axis=1, keepdims=True) + 1e-9
@@ -99,7 +99,7 @@ for s in (-1, 1):
             zz -= s * x * 0.12                            # išorinis kraštas šiek tiek žemiau
             row.append((cx + x, top + zz))
         pts.append(row)
-    panel(pts, "back", 0.0024)
+    panel(pts, "back", 0.0042)
 
 # --- Priekinių kišenių angos (lenkta „J“ linija) ir monetų kišenėlė ---
 for s in (-1, 1):
@@ -109,9 +109,9 @@ for s in (-1, 1):
         x = s * (0.46 * HW + 0.42 * HW * (1 - math.cos(t * math.pi / 2)))
         zz = TOP - 0.042 - 0.085 * math.sin(t * math.pi / 2)
         curve.append((x, zz))
-    strip(curve, "front", 0.0022)
+    strip(curve, "front", 0.0035)
 cx, top, w, h = 0.66 * HW, TOP - 0.048, 0.045, 0.038
-panel([[(cx + (i / 4 - 0.5) * w, top - j / 4 * h) for i in range(5)] for j in range(5)], "front", 0.0015)
+panel([[(cx + (i / 4 - 0.5) * w, top - j / 4 * h) for i in range(5)] for j in range(5)], "front", 0.003)
 
 # --- Užtrauktuko juosta (J forma) ir vidurio siūlė ---
 fx, fz0, fz1 = -0.032, TOP - 0.042, CROTCH + 0.07
@@ -119,10 +119,10 @@ curve = [(fx, fz0 - (fz0 - fz1) * i / 7) for i in range(8)]
 for i in range(1, 7):
     a = i / 6 * math.pi / 2
     curve.append((fx * math.cos(a), fz1 - 0.028 * math.sin(a)))
-strip(curve, "front", 0.0018)
+strip(curve, "front", 0.0032)
 
 # --- Kilpos diržui (7) ---
-LOOP_W, LOOP_H, LOOP_OFF = 0.011, 0.045, 0.0045
+LOOP_W, LOOP_H, LOOP_OFF = 0.012, 0.045, 0.006
 def loop(a, side):
     panel([[(a + (i / 2 - 0.5) * LOOP_W, TOP - 0.003 - j / 3 * LOOP_H) for i in range(3)] for j in range(4)], side, LOOP_OFF)
 for s in (-1, 1):
