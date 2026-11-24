@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16151B">
-<title>NovaFit – demo v19</title>
+<title>NovaFit – demo v20</title>
 <!-- 3D avatarui: three.js biblioteka projekte (assets/lib/three), kraunama tik įjungus 3D -->
 <script type="importmap">{ "imports": { "three": "./assets/lib/three/three.module.js", "three/addons/": "./assets/lib/three/addons/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -258,6 +258,10 @@
   .sheet-foot .hint:empty { display:none; }
   .sheet-foot .hint:not(:empty) { color:var(--error); }
 
+  .toast { position:fixed; left:50%; bottom:calc(96px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:35; width:calc(100% - 32px); max-width:400px;
+           display:flex; align-items:center; gap:12px; padding:4px 8px 4px 16px; border-radius:14px; background:var(--surface-2); border:1px solid var(--line);
+           font-size:15px; line-height:20px; animation:pop .2s ease-out; }
+  .toast span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pop { animation:pop .2s ease-out; }
   @keyframes pop { from { transform:scale(.96); } to { transform:none; } }
   @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
@@ -468,6 +472,12 @@
   <span class="sep" aria-hidden="true"></span>
   <button id="suggest" aria-label="Pasiūlyk derinį" title="Pasiūlyk derinį"><svg class="ic" viewBox="0 0 24 24"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-7.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg></button>
 </nav>
+
+<!-- Pranešimas apačioje: „Ištrinta · Atšaukti“ (5 s) -->
+<div class="toast" id="toast" role="status" hidden>
+  <span id="toastText"></span>
+  <button class="link" id="toastUndo">Atšaukti</button>
+</div>
 
 <!-- LAPAS: kaip pridėti drabužį – nufotografuoti ar iš galerijos -->
 <div class="modal bottom" id="addSheet" hidden>
@@ -1216,12 +1226,27 @@ function openOutfit(id) {
   $("saveMsg").className = "hint ok"; $("saveMsg").textContent = `Atidaryta: „${o.name}“`;
 }
 
+// „Ištrinta · Atšaukti“: 5 sekundes galima sugrąžinti, kas ką tik ištrinta
+let undoAction = null, toastTimer = null;
+function showUndo(text, undo) {
+  undoAction = undo;
+  $("toastText").textContent = text;
+  $("toast").hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 5000);
+}
+function hideToast() { $("toast").hidden = true; undoAction = null; clearTimeout(toastTimer); }
+const copy = x => JSON.parse(JSON.stringify(x));
+
 function deleteOutfit(id) {
   const o = outfits.find(x => x.id === id);
+  if (!o) return;
+  const before = copy(outfits);
   outfits = outfits.filter(x => x.id !== id);
   persist();
-  $("saveMsg").className = "hint"; $("saveMsg").textContent = o ? `Ištrinta: „${o.name}“` : "";
+  $("saveMsg").textContent = "";
   renderSaved();
+  showUndo(`Ištrinta: „${o.name}“`, () => { outfits = before; persist(); });
 }
 
 function renderSaved() {
@@ -1425,13 +1450,19 @@ function saveItem() {
 function deleteItem(id) {
   const item = wardrobe.find(i => i.id === id);
   if (!item) return;
+  const before = { wardrobe: copy(wardrobe), worn: copy(state.worn), outfits: copy(outfits) };
   wardrobe = wardrobe.filter(i => i.id !== id);
   persistWardrobe();
   // Ištrintą drabužį nuimam nuo avataro ir iš išsaugotų derinių
   state.worn = cleanWorn(state.worn);
   outfits = outfits.map(o => ({ ...o, worn: cleanWorn(o.worn) }));
-  wardrobeMsg(`Ištrinta iš spintos: „${item.name}“`, false);
+  persist();
+  wardrobeMsg("", false);
   renderSaved();
+  showUndo(`Ištrinta: „${item.name}“`, () => {
+    wardrobe = before.wardrobe; state.worn = before.worn; outfits = before.outfits;
+    persistWardrobe(); persist();
+  });
 }
 
 // Failas → paveikslėlis
@@ -1829,6 +1860,11 @@ document.addEventListener("click", e => {
     render(); return;
   }
   // --- Mano spinta ---
+  if (el.id === "toastUndo") {
+    const undo = undoAction; hideToast();
+    if (undo) { undo(); stylist = null; render(); renderSaved(); }
+    return;
+  }
   if (el.id === "addItem" || el.id === "itemRetake") { openAddSheet(); return; }
   if (d.close === "addSheet") { closeAddSheet(); return; }
   if (d.itype) { draft.type = d.itype; $("itemMsg").textContent = ""; renderTypeChips(); return; }
