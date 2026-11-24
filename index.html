@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16151B">
-<title>NovaFit – demo v17</title>
+<title>NovaFit – demo v18</title>
 <!-- 3D avatarui: three.js biblioteka projekte (assets/lib/three), kraunama tik įjungus 3D -->
 <script type="importmap">{ "imports": { "three": "./assets/lib/three/three.module.js", "three/addons/": "./assets/lib/three/addons/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -206,14 +206,48 @@
   /* Langas: savo drabužio duomenys */
   .modal { position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(10,9,14,.8); }
   .sheet { width:100%; max-width:380px; max-height:calc(100vh - 32px); overflow:auto; }
-  .sheet canvas { display:block; margin:12px auto 4px; max-width:100%; max-height:240px; border-radius:14px; cursor:crosshair; touch-action:manipulation; }
-  .sheet .field { margin-top:12px; }
-  .sheet select.input { appearance:auto; }
-  .color-row { display:flex; align-items:center; gap:10px; }
-  .color-row input[type=color] { width:48px; height:44px; padding:0; border:1px solid var(--line); border-radius:12px; background:none; cursor:pointer; }
+  .sheet .field { margin-top:16px; }
+  .sheet-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .modal.bottom .backdrop { position:absolute; inset:0; border:0; padding:0; background:transparent; cursor:default; }
+  .modal.bottom .sheet { position:relative; }
+  /* Pridėjimo lapas */
+  .add-sheet { max-width:420px; display:flex; flex-direction:column; gap:12px; padding-bottom:24px; }
+  .grab { display:none; align-self:center; width:40px; height:4px; border-radius:999px; background:var(--line); }
+  .pick { min-height:72px; display:flex; align-items:center; gap:12px; padding:12px; border-radius:16px; background:var(--surface-2); border:1px solid var(--line); cursor:pointer; transition:border-color .12s ease-out; }
+  .pick:hover { border-color:#4A4954; }
+  .pick:focus-visible { outline:2px solid var(--accent-text); outline-offset:2px; }
+  .pick.main { background:var(--accent-soft); border:2px solid var(--accent); padding:11px; }
+  .pick-ic { width:48px; height:48px; border-radius:14px; background:var(--line); color:var(--ink); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .pick.main .pick-ic { background:var(--accent); color:#fff; }
+  .pick-ic svg.ic { width:24px; height:24px; }
+  .pick b { display:block; font-size:15px; line-height:20px; }
+  .pick small { display:block; font-size:13px; line-height:18px; color:var(--muted); font-weight:500; }
+  .tip { display:flex; gap:8px; margin:4px 4px 0; font-size:13px; line-height:18px; color:var(--muted); }
+  .tip svg.ic { width:18px; height:18px; color:var(--accent-text); margin-top:1px; }
+  /* Drabužio forma */
+  .item-sheet { max-width:440px; padding-bottom:0; }
+  .photo-frame { position:relative; margin-top:12px; height:240px; border-radius:24px; background:var(--stage); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .photo-frame canvas { display:block; max-width:100%; max-height:100%; cursor:crosshair; touch-action:manipulation; }
+  .retake { position:absolute; left:12px; top:12px; height:44px; padding:0 14px; border-radius:999px; border:0; background:var(--bg); color:var(--ink); font-size:15px; font-weight:600; display:flex; align-items:center; gap:6px; }
+  .retake svg.ic { width:18px; height:18px; }
+  .type-groups { display:flex; flex-direction:column; gap:10px; }
+  .type-group small { display:block; font-size:13px; line-height:18px; color:var(--muted); font-weight:500; margin-bottom:6px; }
+  .type-group .chips { gap:6px; }
+  .type-groups.need .chip { border-color:var(--error); }
+  .color-card { display:flex; align-items:center; gap:12px; margin-top:16px; padding:10px 12px; border-radius:16px; background:var(--surface-2); border:1px solid var(--line); }
+  .color-card input[type=color] { width:44px; height:44px; padding:0; border:2px solid var(--line); border-radius:999px; background:none; cursor:pointer; overflow:hidden; flex-shrink:0; }
+  .color-card input[type=color]::-webkit-color-swatch-wrapper { padding:0; }
+  .color-card input[type=color]::-webkit-color-swatch { border:0; border-radius:999px; }
+  .color-card input[type=color]::-moz-color-swatch { border:0; border-radius:999px; }
+  .color-text { flex:1; display:flex; flex-direction:column; }
+  .color-text b { font-size:15px; line-height:20px; }
+  .color-text small { font-size:13px; line-height:18px; color:var(--muted); font-weight:500; }
   .fabric-row { margin-top:12px; align-items:center; }
   .fabric-row canvas { width:56px; height:56px; border-radius:10px; flex-shrink:0; margin-left:auto; border:1px solid var(--line); background:var(--stage); }
-  .sheet .actions { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:16px; }
+  .sheet-foot { position:sticky; bottom:0; margin:16px -16px 0; padding:4px 16px calc(16px + env(safe-area-inset-bottom)); background:var(--surface); border-top:1px solid var(--line); }
+  .sheet-foot .hint { margin:4px 0 8px; min-height:0; }
+  .sheet-foot .hint:empty { display:none; }
+  .sheet-foot .hint:not(:empty) { color:var(--error); }
 
   .pop { animation:pop .2s ease-out; }
   @keyframes pop { from { transform:scale(.96); } to { transform:none; } }
@@ -227,6 +261,11 @@
     .stage { position:sticky; top:0; z-index:5; height:44vh; min-height:300px; max-height:none; border-radius:0 0 28px 28px; margin:0 -8px; padding-bottom:24px; }
     .stage .pedestal { bottom:14px; height:36px; }
     .content { padding:0 8px; }
+    /* Langai telefone – iš apačios, per visą plotį */
+    .modal.bottom { align-items:flex-end; padding:0; }
+    .modal.bottom .sheet { max-width:none; border-radius:24px 24px 0 0; border-bottom:0; max-height:94vh; max-height:94dvh; }
+    .add-sheet { padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+    .grab { display:block; }
   }
 </style>
 </head>
@@ -397,8 +436,10 @@
       <div class="chips" id="filters"></div>
       <div class="grid" id="catalog"></div>
       <p class="hint" id="wardrobeMsg"></p>
-      <!-- Laukelis nematomas, bet ne „hidden“: telefonuose paslėptas laukelis galerijos neatidaro -->
+      <!-- Laukeliai nematomi, bet ne „hidden“: telefonuose paslėptas laukelis galerijos neatidaro.
+           cameraInput telefone iškart atidaro kamerą, photoInput – galeriją (kompiuteryje abu – failų langą). -->
       <input type="file" id="photoInput" class="sr" accept="image/*" tabindex="-1">
+      <input type="file" id="cameraInput" class="sr" accept="image/*" capture="environment" tabindex="-1">
     </div>
 
     <!-- MANO DERINIAI -->
@@ -411,37 +452,64 @@
 
 <nav class="dock" aria-label="Pagrindinis meniu">
   <button data-view="look" aria-label="Derinys" title="Derinys"><svg class="ic" viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg></button>
-  <button data-view="closet" aria-label="Spinta ir katalogas" title="Spinta ir katalogas"><svg class="ic" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></button>
+  <button data-view="closet" aria-label="Spinta ir katalogas" title="Spinta ir katalogas"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="18" rx="2"/><path d="M12 2v18"/><path d="M9.5 10v2"/><path d="M14.5 10v2"/><path d="M6.5 20v2"/><path d="M17.5 20v2"/></svg></button>
   <button data-view="saved" aria-label="Mano deriniai" title="Mano deriniai"><svg class="ic" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
   <span class="sep" aria-hidden="true"></span>
   <button id="suggest" aria-label="Pasiūlyk derinį" title="Pasiūlyk derinį"><svg class="ic" viewBox="0 0 24 24"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-7.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg></button>
 </nav>
 
-<!-- LANGAS: naujo (arba taisomo) savo drabužio duomenys -->
-<div class="modal" id="itemForm" hidden>
-  <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="itemFormTitle">
-    <h2 id="itemFormTitle">Naujas drabužis</h2>
-    <canvas id="itemPhoto" width="240" height="240"></canvas>
-    <label class="field"><span class="label">Kas tai?</span>
-      <select class="input" id="itemType"></select>
-    </label>
-    <label class="field"><span class="label">Pavadinimas (nebūtina)</span>
-      <input class="input" type="text" id="itemName" maxlength="40" placeholder="pvz. Mėgstamiausias džemperis">
-    </label>
-    <div class="field"><span class="label">Spalva</span>
-      <div class="color-row">
-        <input type="color" id="itemColor" aria-label="Drabužio spalva">
-        <button class="link" id="colorAuto">Grąžinti automatinę</button>
-      </div>
+<!-- LAPAS: kaip pridėti drabužį – nufotografuoti ar iš galerijos -->
+<div class="modal bottom" id="addSheet" hidden>
+  <button class="backdrop" data-close="addSheet" aria-label="Uždaryti" tabindex="-1"></button>
+  <div class="card sheet add-sheet" role="dialog" aria-modal="true" aria-labelledby="addSheetTitle">
+    <span class="grab" aria-hidden="true"></span>
+    <div class="sheet-head">
+      <h2 id="addSheetTitle">Pridėti drabužį</h2>
+      <button class="icon-btn" data-close="addSheet" aria-label="Uždaryti"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
-    <p class="hint">Spalvą parinkome iš nuotraukos. Jei netinka – paspausk ant drabužio nuotraukoje arba pasirink pats.</p>
+    <!-- <label>, o ne mygtukas: paspaudus naršyklė pati atidaro kamerą / galeriją (telefonuose patikimiau) -->
+    <label class="pick main" for="cameraInput" tabindex="0" role="button" data-for="cameraInput">
+      <span class="pick-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></span>
+      <span><b>Fotografuoti</b><small>Padėk drabužį ant lovos ar grindų – visas kadre</small></span>
+    </label>
+    <label class="pick" for="photoInput" tabindex="0" role="button" data-for="photoInput">
+      <span class="pick-ic"><svg class="ic" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg></span>
+      <span><b>Iš galerijos</b><small>Jau turi nuotrauką telefone ar kompiuteryje</small></span>
+    </label>
+    <p class="tip"><svg class="ic" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+      Spalvą ir raštą paimsime iš nuotraukos. Tau liks pasirinkti, kas tai per drabužis.</p>
+  </div>
+</div>
+
+<!-- LANGAS: naujo (arba taisomo) savo drabužio duomenys -->
+<div class="modal bottom" id="itemForm" hidden>
+  <div class="card sheet item-sheet" role="dialog" aria-modal="true" aria-labelledby="itemFormTitle">
+    <div class="sheet-head">
+      <h2 id="itemFormTitle">Naujas drabužis</h2>
+      <button class="icon-btn" id="itemCancel" aria-label="Uždaryti"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    </div>
+    <div class="photo-frame">
+      <canvas id="itemPhoto" width="240" height="240" aria-label="Tavo nuotrauka – paspausk, kad paimtum spalvą"></canvas>
+      <button class="retake" id="itemRetake"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Kita nuotrauka</button>
+    </div>
+    <div class="field"><span class="label" id="itemTypeLabel">Kas tai?</span>
+      <div class="type-groups" id="itemTypes" role="group" aria-labelledby="itemTypeLabel"></div>
+    </div>
+    <div class="color-card">
+      <input type="color" id="itemColor" aria-label="Drabužio spalva – paspausk, kad pakeistum">
+      <span class="color-text"><b>Spalva</b><small id="colorStatus">Paimta iš nuotraukos</small></span>
+      <button class="link" id="colorAuto" hidden>Grąžinti</button>
+    </div>
+    <p class="hint">Netiksli spalva? Paspausk ant drabužio nuotraukoje arba ant spalvos apskritimo.</p>
     <label class="check fabric-row"><input type="checkbox" id="itemPattern" checked>
-      <span><b style="color:var(--ink)">Rodyti raštą iš nuotraukos</b><br>Ant avataro bus tavo drabužio audinys, raštas ar užrašas. Iškarpa – pagal drabužio tipą.</span>
+      <span><b style="color:var(--ink)">Rodyti raštą iš nuotraukos</b><br>Ant avataro bus tavo drabužio audinys, raštas ar užrašas.</span>
       <canvas id="itemFabric" width="96" height="96" aria-label="Audinio pavyzdys iš nuotraukos"></canvas></label>
-    <p class="hint" id="itemMsg"></p>
-    <div class="actions">
-      <button class="btn btn-secondary" id="itemCancel">Atšaukti</button>
-      <button class="btn btn-primary" id="itemSave">Pridėti į spintą</button>
+    <label class="field"><span class="label">Pavadinimas (nebūtina)</span>
+      <input class="input" type="text" id="itemName" maxlength="40" placeholder="Pvz., Mėgstamas džemperis">
+    </label>
+    <div class="sheet-foot">
+      <p class="hint" id="itemMsg" role="alert"></p>
+      <button class="btn btn-primary btn-big" id="itemSave"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="18" rx="2"/><path d="M12 2v18"/><path d="M9.5 10v2"/><path d="M14.5 10v2"/><path d="M6.5 20v2"/><path d="M17.5 20v2"/></svg><span id="itemSaveText">Pridėti į spintą</span></button>
     </div>
   </div>
 </div>
@@ -811,12 +879,11 @@ async function paintThumb(cv, item) {
 // Mano spinta: mygtukas „Įkelti drabužį“ ir įkeltų drabužių nuotraukos
 function renderWardrobe() {
   const items = wardrobe.filter(i => state.filter === "all" || i.category === state.filter);
-  // <label>, o ne mygtukas: paspaudus naršyklė pati atidaro galeriją / failų langą.
-  // Telefonuose tai patikimiau nei atidarymas per kodą.
-  let html = `<label class="item add" id="addItem" for="photoInput" tabindex="0" role="button">
-      <svg class="ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-      <b>Įkelti drabužį</b><small>Nuotrauka iš telefono ar kompiuterio</small>
-    </label>`;
+  // Atidaro lapą „Fotografuoti / Iš galerijos“
+  let html = `<button class="item add" id="addItem">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      <b>Įkelti drabužį</b><small>Nufotografuok arba pasirink nuotrauką</small>
+    </button>`;
   html += items.map(i => `
     <div class="item own ${state.worn[i.category] === i.id ? "worn" : ""}">
       <button class="open" data-item="${i.id}" title="Apvilkti / nuimti">
@@ -1216,7 +1283,12 @@ function detectColor(ctx, w, h) {
   return toHex(s[0] / s[3], s[1] / s[3], s[2] / s[3]);
 }
 
-function setDraftColor(hex) { draft.color = hex; $("itemColor").value = hex; }
+function setDraftColor(hex) { draft.color = hex; $("itemColor").value = hex; showColorStatus(); }
+function showColorStatus() {
+  const auto = draft && draft.color.toLowerCase() === String(draft.autoColor).toLowerCase();
+  $("colorStatus").textContent = auto ? "Paimta iš nuotraukos" : "Pasirinkta tavo";
+  $("colorAuto").hidden = auto;
+}
 
 // Audinio pavyzdys: iš nuotraukos išrenkam drabužio vidurio kvadratą (be fono ir kraštų).
 // Fonas – spalvos, panašios į nuotraukos kraštus; drabužis – visa kita.
@@ -1261,33 +1333,54 @@ function drawPhoto(img) {
   return ctx;
 }
 
-function openItemForm(img, item) {
+// Trumpi tipų pavadinimai mygtukams formoje (ilgi – TYPES sąraše)
+const TYPE_SHORT = { tshirt:"Marškinėliai", oversize:"Laisvi marškinėliai", sweater:"Megztinis", hoodie:"Džemperis su kapišonu",
+  jeans:"Džinsai", trousers:"Kostiuminės kelnės", shirt:"Marškiniai", pants:"Siauros kelnės", widepants:"Plačios kelnės",
+  shorts:"Šortai", skirt:"Sijonas", sneakers:"Sportbačiai", boots:"Batai", jacket:"Striukė", coat:"Paltas", cap:"Kepuraitė", beanie:"Žieminė kepurė" };
+
+function renderTypeChips() {
+  $("itemTypes").classList.remove("need");
+  $("itemTypes").innerHTML = Object.entries(CATEGORIES).map(([cat, catName]) => {
+    const types = Object.keys(TYPES).filter(k => TYPES[k].category === cat);
+    return `<div class="type-group"><small>${catName}</small><div class="chips">` +
+      types.map(k => `<button class="chip ${draft.type === k ? "active" : ""}" data-itype="${k}" aria-pressed="${draft.type === k}">${TYPE_SHORT[k] || TYPES[k].name}</button>`).join("") +
+      `</div></div>`;
+  }).join("");
+}
+
+// keep = true: pakeista tik nuotrauka, jau pasirinktas tipas ir pavadinimas lieka
+function openItemForm(img, item, keep) {
+  const prev = keep && draft ? { type: draft.type, name: $("itemName").value, pattern: $("itemPattern").checked } : null;
   const ctx = drawPhoto(img);
   const auto = detectColor(ctx, $("itemPhoto").width, $("itemPhoto").height);
-  draft = { id: item ? item.id : null, autoColor: auto };
+  draft = { id: item ? item.id : null, autoColor: auto, type: prev ? prev.type : item ? item.type : "" };
   setDraftColor(item ? item.color : auto);
   draft.fabric = (item && item.fabric) || makeFabric($("itemPhoto"));
   showFabric(draft.fabric);
-  $("itemPattern").checked = item ? item.pattern !== false : true;
-  // Tipų sąrašas, sugrupuotas pagal vietą ant kūno
-  $("itemType").innerHTML = `<option value="">– pasirink –</option>` +
-    Object.entries(CATEGORIES).map(([cat, catName]) => `<optgroup label="${catName}">` +
-      Object.entries(TYPES).filter(([, t]) => t.category === cat)
-        .map(([key, t]) => `<option value="${key}">${t.name}</option>`).join("") + `</optgroup>`).join("");
-  $("itemType").value = item ? item.type : "";
-  $("itemName").value = item ? item.name : "";
+  $("itemPattern").checked = prev ? prev.pattern : item ? item.pattern !== false : true;
+  renderTypeChips();
+  $("itemName").value = prev ? prev.name : item ? item.name : "";
   $("itemFormTitle").textContent = item ? "Taisyti drabužį" : "Naujas drabužis";
-  $("itemSave").textContent = item ? "Išsaugoti" : "Pridėti į spintą";
+  $("itemSaveText").textContent = item ? "Išsaugoti" : "Pridėti į spintą";
+  $("itemRetake").hidden = !!item;   // taisant – nuotrauka lieka ta pati
   $("itemMsg").textContent = "";
   $("itemForm").hidden = false;
+  if (!keep) $("itemForm").querySelector(".sheet").scrollTop = 0;
 }
 function closeItemForm() { $("itemForm").hidden = true; draft = null; }
+function openAddSheet() { $("addSheet").hidden = false; }
+function closeAddSheet() { $("addSheet").hidden = true; }
 
 function wardrobeMsg(text, ok) { $("wardrobeMsg").className = ok ? "hint ok" : "hint"; $("wardrobeMsg").textContent = text; }
 
 function saveItem() {
-  const type = $("itemType").value;
-  if (!type) { $("itemMsg").textContent = "Pasirink, koks tai drabužis."; return; }
+  const type = draft.type;
+  if (!type) {
+    $("itemMsg").textContent = "Pasirink, kas tai per drabužis – tada žinosim, kaip jį uždėti ant avataro.";
+    $("itemTypes").classList.add("need");
+    $("itemTypeLabel").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   const name = $("itemName").value.trim() || TYPES[type].name;
   const data = { name, type, category: TYPES[type].category, color: draft.color, fabric: draft.fabric, pattern: $("itemPattern").checked };
   const before = JSON.stringify(wardrobe);
@@ -1335,13 +1428,21 @@ function fileToImage(file) {
     im.src = url;
   });
 }
-$("photoInput").addEventListener("change", async e => {
+// Nuotrauka iš kameros arba galerijos → drabužio forma
+async function onPhotoPicked(e) {
   const file = e.target.files[0];
   e.target.value = "";            // kad tą pačią nuotrauką būtų galima pasirinkti dar kartą
   if (!file) return;
-  try { openItemForm(await fileToImage(file)); }
-  catch (err) { wardrobeMsg("Šios nuotraukos atidaryti nepavyko. Pabandyk JPG arba PNG.", false); }
-});
+  closeAddSheet();
+  const keep = !$("itemForm").hidden && draft && !draft.id;   // „Kita nuotrauka“ – pasirinkimai lieka
+  try { openItemForm(await fileToImage(file), null, keep); }
+  catch (err) {
+    if (keep) $("itemMsg").textContent = "Šios nuotraukos atidaryti nepavyko. Pabandyk JPG arba PNG.";
+    else wardrobeMsg("Šios nuotraukos atidaryti nepavyko. Pabandyk JPG arba PNG.", false);
+  }
+}
+$("photoInput").addEventListener("change", onPhotoPicked);
+$("cameraInput").addEventListener("change", onPhotoPicked);
 // Paspaudus ant nuotraukos – paimam tos vietos spalvą
 $("itemPhoto").addEventListener("click", e => {
   const cv = e.currentTarget, r = cv.getBoundingClientRect();
@@ -1353,12 +1454,16 @@ $("itemPhoto").addEventListener("click", e => {
   for (let i = 0; i < d.length; i += 4) { sum[0] += d[i]; sum[1] += d[i + 1]; sum[2] += d[i + 2]; }
   setDraftColor(toHex(...sum.map(v => v / (d.length / 4))));
 });
-// Klaviatūra: Enter arba tarpas ant „Įkelti drabužį“
+// Klaviatūra: Enter arba tarpas ant „Fotografuoti“ / „Iš galerijos“
 document.addEventListener("keydown", e => {
-  if ((e.key === "Enter" || e.key === " ") && e.target.id === "addItem") { e.preventDefault(); $("photoInput").click(); }
+  if ((e.key === "Enter" || e.key === " ") && e.target.dataset && e.target.dataset.for) { e.preventDefault(); $(e.target.dataset.for).click(); }
 });
-$("itemColor").addEventListener("input", e => { if (draft) draft.color = e.target.value; });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && draft) closeItemForm(); });
+$("itemColor").addEventListener("input", e => { if (draft) { draft.color = e.target.value; showColorStatus(); } });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!$("addSheet").hidden) closeAddSheet();
+  else if (draft) closeItemForm();
+});
 
 function renderWornList() {
   const cats = Object.keys(CATEGORIES).filter(c => state.worn[c]);
@@ -1709,6 +1814,9 @@ document.addEventListener("click", e => {
     render(); return;
   }
   // --- Mano spinta ---
+  if (el.id === "addItem" || el.id === "itemRetake") { openAddSheet(); return; }
+  if (d.close === "addSheet") { closeAddSheet(); return; }
+  if (d.itype) { draft.type = d.itype; $("itemMsg").textContent = ""; renderTypeChips(); return; }
   if (el.id === "itemCancel") { closeItemForm(); return; }
   if (el.id === "itemSave") { saveItem(); return; }
   if (el.id === "colorAuto") { setDraftColor(draft.autoColor); return; }
