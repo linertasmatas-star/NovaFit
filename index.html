@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16151B">
-<title>NovaFit – demo v18</title>
+<title>NovaFit – demo v19</title>
 <!-- 3D avatarui: three.js biblioteka projekte (assets/lib/three), kraunama tik įjungus 3D -->
 <script type="importmap">{ "imports": { "three": "./assets/lib/three/three.module.js", "three/addons/": "./assets/lib/three/addons/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -182,6 +182,15 @@
   .item.add b { color:var(--ink); margin:0; }
   .item.add svg.ic { width:28px; height:28px; color:var(--accent-text); }
   .grid .empty { grid-column:1/-1; }
+  /* Mano spinta: didesnės nuotraukos, telefone 3 stulpeliai */
+  .grid.mine { grid-template-columns:repeat(auto-fill, minmax(124px, 1fr)); }
+  .grid.mine .photo { height:132px; }
+  .grid.mine .item.own b, .grid.mine .item.own small { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; }
+  .grid.mine .item.add { min-height:0; height:100%; border:2px dashed var(--line); color:var(--accent-text); gap:8px; padding:12px 6px; }
+  .grid.mine .item.add b { font-size:13px; color:var(--accent-text); }
+  .add-ic { width:44px; height:44px; border-radius:999px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; }
+  .grid.mine .item.add .add-ic svg.ic { width:22px; height:22px; }
+  .grid.mine .item.add:hover { border-color:var(--accent); }
   .mini { position:absolute; top:8px; width:32px; height:32px; border-radius:999px; border:1px solid var(--line); background:rgba(22,21,27,.85); color:var(--ink); display:flex; align-items:center; justify-content:center; }
   .mini svg.ic { width:16px; height:16px; }
   .mini.del { right:8px; } .mini.edit { right:46px; }
@@ -261,6 +270,8 @@
     .stage { position:sticky; top:0; z-index:5; height:44vh; min-height:300px; max-height:none; border-radius:0 0 28px 28px; margin:0 -8px; padding-bottom:24px; }
     .stage .pedestal { bottom:14px; height:36px; }
     .content { padding:0 8px; }
+    .grid.mine { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+    .grid.mine .photo { height:120px; }
     /* Langai telefone – iš apačios, per visą plotį */
     .modal.bottom { align-items:flex-end; padding:0; }
     .modal.bottom .sheet { max-width:none; border-radius:24px 24px 0 0; border-bottom:0; max-height:94vh; max-height:94dvh; }
@@ -811,6 +822,7 @@ function renderFilters() {
 }
 
 function renderCatalog() {
+  $("catalog").classList.toggle("mine", state.tab === "mine");
   if (state.tab === "mine") { renderWardrobe(); return; }
   const b = BODY_SHAPES.medium;
   const items = shown().filter(i => state.filter === "all" || i.category === state.filter)
@@ -881,14 +893,14 @@ function renderWardrobe() {
   const items = wardrobe.filter(i => state.filter === "all" || i.category === state.filter);
   // Atidaro lapą „Fotografuoti / Iš galerijos“
   let html = `<button class="item add" id="addItem">
-      <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-      <b>Įkelti drabužį</b><small>Nufotografuok arba pasirink nuotrauką</small>
+      <span class="add-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>
+      <b>Įkelti drabužį</b>
     </button>`;
   html += items.map(i => `
     <div class="item own ${state.worn[i.category] === i.id ? "worn" : ""}">
-      <button class="open" data-item="${i.id}" title="Apvilkti / nuimti">
+      <button class="open" data-item="${i.id}" title="Apvilkti / nuimti" aria-pressed="${state.worn[i.category] === i.id}">
         <span class="photo"><img src="${i.photo}" alt=""><i style="background:${i.color}"></i></span>
-        <b>${esc(i.name)}</b><small>${CATEGORIES[i.category]} · ${TYPES[i.type].name}</small>
+        <b>${esc(i.name)}</b><small>${sameAsType(i) ? CATEGORIES[i.category] : (TYPE_SHORT[i.type] || TYPES[i.type].name)}</small>
       </button>
       <button class="mini edit" data-edititem="${i.id}" aria-label="Taisyti" title="Taisyti">${ICON.edit}</button>
       <button class="mini del" data-delitem="${i.id}" aria-label="Ištrinti iš spintos" title="Ištrinti iš spintos">${ICON.del}</button>
@@ -1338,6 +1350,9 @@ const TYPE_SHORT = { tshirt:"Marškinėliai", oversize:"Laisvi marškinėliai", 
   jeans:"Džinsai", trousers:"Kostiuminės kelnės", shirt:"Marškiniai", pants:"Siauros kelnės", widepants:"Plačios kelnės",
   shorts:"Šortai", skirt:"Sijonas", sneakers:"Sportbačiai", boots:"Batai", jacket:"Striukė", coat:"Paltas", cap:"Kepuraitė", beanie:"Žieminė kepurė" };
 
+// Ar pavadinimas – tiesiog tipo pavadinimas (tada po juo rodom kategoriją, kad nesikartotų)
+const sameAsType = i => [TYPE_SHORT[i.type], TYPES[i.type].name].includes(i.name);
+
 function renderTypeChips() {
   $("itemTypes").classList.remove("need");
   $("itemTypes").innerHTML = Object.entries(CATEGORIES).map(([cat, catName]) => {
@@ -1381,7 +1396,7 @@ function saveItem() {
     $("itemTypeLabel").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
-  const name = $("itemName").value.trim() || TYPES[type].name;
+  const name = $("itemName").value.trim() || TYPE_SHORT[type] || TYPES[type].name;
   const data = { name, type, category: TYPES[type].category, color: draft.color, fabric: draft.fabric, pattern: $("itemPattern").checked };
   const before = JSON.stringify(wardrobe);
   let item = wardrobe.find(i => i.id === draft.id);
