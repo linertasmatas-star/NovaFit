@@ -8,7 +8,8 @@ Atsisiųskite visą repozitoriją (Code → Download ZIP), išskleiskite ir du k
 ## Gyva nuoroda
 https://linertasmatas-star.github.io/NovaFit/
 
-## Kas jau veikia (demo v19)
+## Kas jau veikia (demo v20)
+- Ištrynus drabužį ar derinį 5 sekundes rodoma „Ištrinta · Atšaukti“ – galima sugrąžinti (drabužis grįžta ir ant avataro, ir į išsaugotus derinius)
 - „Mano spinta“: didesnės drabužių nuotraukos (telefone 3 stulpeliai), kortelė „Įkelti drabužį“ su +; be pavadinimo drabužis vadinamas tipu (pvz. „Džinsai“), po juo – kategorija
 - Naujas drabužio įkėlimas: „Įkelti drabužį“ atidaro lapą „Fotografuoti“ (telefone – iškart kamera) / „Iš galerijos“; formoje – didelė nuotrauka su „Kita nuotrauka“, tipas mygtukais pagal grupes (Viršus, Apačia…), spalva iš nuotraukos (paspaudus apskritimą – pasirinkti pačiam), raštas, pavadinimas. Meniu – nauja spintos ikona
 - Džemperis su kapišonu – pirmas Blenderyje sukurtas 3D drabužis (`assets/avatar3d/hoodie.glb`): kapišonas, kengūros kišenė, raišteliai, juostos, raukšlės; keičiasi kartu su figūra (tos pačios 13 formų). 2D rodomas megztinio sluoksniu. Kaip sukurti iš naujo: `tools/blender/` (0 – sričių duomenys, 1 – pagrindas, 2 – forma, 3 – detalės; leidžiama Blenderyje per MCP)
