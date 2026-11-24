@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16151B">
-<title>NovaFit – demo v20</title>
+<title>NovaFit – demo v21</title>
 <!-- 3D avatarui: three.js biblioteka projekte (assets/lib/three), kraunama tik įjungus 3D -->
 <script type="importmap">{ "imports": { "three": "./assets/lib/three/three.module.js", "three/addons/": "./assets/lib/three/addons/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -202,6 +202,33 @@
   .outfit canvas { width:100%; height:auto; display:block; border-radius:10px; background:var(--stage); }
   .outfit b { display:block; font-size:15px; line-height:20px; font-weight:600; margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .outfit small { color:var(--muted); font-size:13px; }
+
+  /* Parduotuvės */
+  #shopFilters { margin:4px 0 12px; }
+  .shop-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px; }
+  .prod { position:relative; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:8px; display:flex; flex-direction:column; gap:6px; }
+  .prod.worn { border:2px solid var(--accent); background:var(--accent-soft); padding:7px; }
+  .prod img { width:100%; height:150px; object-fit:cover; border-radius:10px; background:var(--stage); display:block; }
+  .prod .tag { position:absolute; top:14px; left:14px; background:rgba(22,21,27,.85); }
+  .prod b { font-size:15px; line-height:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; }
+  .prod small { font-size:13px; line-height:18px; color:var(--muted); padding:0 2px; }
+  .prod .price { font-size:15px; font-weight:700; padding:0 2px; }
+  .prod .acts { display:grid; grid-template-columns:1fr 44px; gap:6px; margin-top:2px; }
+  .prod .acts .btn { height:44px; padding:0 8px; font-size:14px; border-radius:12px; }
+  .prod .acts .icon-btn { border-radius:12px; }
+  .prod .acts .icon-btn.in { background:var(--accent-soft); border-color:var(--accent); color:var(--accent-text); }
+  .cart { margin-top:16px; }
+  .cart h3 { font:600 15px/20px "Space Grotesk", Manrope, sans-serif; margin:12px 0 4px; display:flex; justify-content:space-between; }
+  .cart h3 small { font:500 13px/18px Manrope, sans-serif; color:var(--muted); }
+  .cart-row { display:flex; align-items:center; gap:10px; min-height:56px; border-top:1px solid var(--line); }
+  .cart-row img { width:44px; height:52px; object-fit:cover; border-radius:8px; }
+  .cart-row span { flex:1; min-width:0; font-size:15px; line-height:20px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cart-row b { font-size:15px; }
+  .totals { display:grid; grid-template-columns:1fr auto; row-gap:6px; margin:12px 0; font-size:15px; }
+  .totals dt { color:var(--muted); } .totals dd { margin:0; text-align:right; }
+  .totals .sum { color:var(--ink); font-weight:700; padding-top:8px; border-top:1px solid var(--line); }
+  .dock button { position:relative; }
+  .badge { position:absolute; right:-2px; top:-2px; min-width:20px; height:20px; padding:0 5px; border-radius:999px; background:var(--accent); color:#fff; font-size:13px; line-height:20px; font-weight:700; }
 
   /* Apatinis meniu – plūduriuojanti „piliulė“ */
   .dock { position:fixed; left:50%; bottom:calc(16px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:15; height:64px; padding:8px; border-radius:999px;
@@ -457,6 +484,14 @@
       <input type="file" id="cameraInput" class="sr" accept="image/*" capture="environment" tabindex="-1">
     </div>
 
+    <!-- PARDUOTUVĖS (demonstracinė imitacija) -->
+    <div class="view" id="view-shop" hidden>
+      <div class="section-head"><h2>Parduotuvės</h2><span class="label" style="font-weight:500">Pasimatuok prieš pirkdamas</span></div>
+      <div class="chips" id="shopFilters"></div>
+      <div class="shop-grid" id="shopGrid"></div>
+      <div class="card cart" id="cart"></div>
+    </div>
+
     <!-- MANO DERINIAI -->
     <div class="view" id="view-saved" hidden>
       <div class="section-head"><h2>Mano deriniai</h2></div>
@@ -468,6 +503,7 @@
 <nav class="dock" aria-label="Pagrindinis meniu">
   <button data-view="look" aria-label="Derinys" title="Derinys"><svg class="ic" viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg></button>
   <button data-view="closet" aria-label="Spinta ir katalogas" title="Spinta ir katalogas"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="18" rx="2"/><path d="M12 2v18"/><path d="M9.5 10v2"/><path d="M14.5 10v2"/><path d="M6.5 20v2"/><path d="M17.5 20v2"/></svg></button>
+  <button data-view="shop" aria-label="Parduotuvės" title="Parduotuvės"><svg class="ic" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="badge" id="cartBadge" hidden></span></button>
   <button data-view="saved" aria-label="Mano deriniai" title="Mano deriniai"><svg class="ic" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
   <span class="sep" aria-hidden="true"></span>
   <button id="suggest" aria-label="Pasiūlyk derinį" title="Pasiūlyk derinį"><svg class="ic" viewBox="0 0 24 24"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-7.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg></button>
@@ -582,8 +618,19 @@ const CATALOG = [
   { id:101, name:"Alyvinis džemperis",      category:"top",    type:"sweater", color:"#b7a4e0", style:"Kasdienis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"39 €" },
   { id:102, name:"Tamsiai žali marškiniai", category:"top",    type:"shirt",   color:"#2f5d4a", style:"Elegantiškas", sponsored:true, brand:"Pavyzdinis ženklas", price:"45 €", old:true },
   { id:103, name:"Mėtiniai marškinėliai",   category:"top",    type:"tshirt",  color:"#9ed8c3", style:"Sportinis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"19 €" },
-  { id:104, name:"Smėlinės kelnės",         category:"bottom", type:"pants",   color:"#cdb891", style:"Kasdienis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"49 €", old:true }
+  { id:104, name:"Smėlinės kelnės",         category:"bottom", type:"pants",   color:"#cdb891", style:"Kasdienis",    sponsored:true, brand:"Pavyzdinis ženklas", price:"49 €", old:true },
+
+  // PARDUOTUVĖS PREKĖS (skirtukas „Parduotuvės“) – DEMONSTRACINĖ IMITACIJA:
+  // parduotuvės, kainos ir užsakymas išgalvoti. Nuotraukos – assets/shop/ (pakeisti savomis prieš viešinant).
+  // Ant avataro dedamas mūsų to tipo drabužis su prekės spalva (kaip ir „Mano spintoje“).
+  { id:201, name:"Klasikiniai džinsai",    category:"bottom", type:"jeans",    color:"#6f8fb8", style:"Kasdienis",    shop:"Miesto spinta", cost:39.99, img:"assets/shop/dzinsai.jpg" },
+  { id:202, name:"Džemperis su kapišonu",  category:"top",    type:"hoodie",   color:"#d9d9de", style:"Kasdienis",    shop:"Vėjo audiniai", cost:36.99, img:"assets/shop/dzemperis.jpg" },
+  { id:203, name:"Megztinis",              category:"top",    type:"sweater",  color:"#a9a9ad", style:"Kasdienis",    shop:"Vėjo audiniai", cost:29.99, img:"assets/shop/megztinis.jpg" },
+  { id:204, name:"Kostiuminės kelnės",     category:"bottom", type:"trousers", color:"#34363c", style:"Elegantiškas", shop:"Šilas Studio",  cost:44.99, img:"assets/shop/kostiumines-kelnes.jpg" },
+  { id:205, name:"Balti marškiniai",       category:"top",    type:"shirt",    color:"#eef0f6", style:"Elegantiškas", shop:"Šilas Studio",  cost:34.99, img:"assets/shop/marskiniai.jpg", sponsored:true, brand:"Šilas Studio", price:"34,99 €" }
 ];
+const SHOPS = ["Vėjo audiniai", "Miesto spinta", "Šilas Studio"];
+const DELIVERY = 2.99;   // vienos parduotuvės siunta (išgalvota)
 
 // Drabužių tipai, kuriuos mokam uždėti ant avataro (kiekvienam yra sluoksnio failas).
 // Įkeldamas savo drabužį vartotojas pasirenka vieną iš jų.
@@ -811,7 +858,7 @@ const THUMB_VIEW = {
 const $ = id => document.getElementById(id);
 // Drabužį randam pagal id – ir kataloge, ir mano spintoje
 // Rodomi drabužiai: senieji (old:true) paslėpti – juos keičia Blenderyje sukurti 3D drabužiai. Išsaugotuose deriniuose jie vis dar veikia.
-const shown = () => CATALOG.filter(i => !i.old);
+const shown = () => CATALOG.filter(i => !i.old && !i.shop);   // parduotuvės prekės – tik skirtuke „Parduotuvės“
 const MODEL_TYPES = ["hoodie", "sweater", "jeans", "trousers"];        // turi tikrą 3D modelį (assets/avatar3d/<tipas>.glb)
 const is3d = i => MODEL_TYPES.includes(i.type);
 const byId = id => CATALOG.find(i => i.id === id) || wardrobe.find(i => i.id === id);
@@ -922,6 +969,8 @@ function renderWardrobe() {
 
 // Linijinės ikonos (Lucide stiliaus)
 const ICON = {
+  cart: `<svg class="ic" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>`,
+  check:`<svg class="ic" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>`,
   edit: `<svg class="ic" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>`,
   del:  `<svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`,
   minus:`<svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>`,
@@ -1711,8 +1760,58 @@ function renderSwatches() {
 }
 
 // Apatinio meniu skiltys
+// ===================== PARDUOTUVĖS (demonstracinė imitacija) =====================
+// Krepšelis saugomas naršyklėje atskirai. Užsakymas niekur nesiunčiamas.
+const CART_KEY = "novafit-cart-v1";
+let cart = [];
+try { const c = JSON.parse(localStorage.getItem(CART_KEY)); if (Array.isArray(c)) cart = c.filter(id => CATALOG.some(i => i.id === id && i.shop)); } catch (e) {}
+let shopFilter = "all", orderDone = false;
+const eur = n => n.toFixed(2).replace(".", ",") + " €";
+function persistCart() { try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) {} }
+
+function renderShop() {
+  $("shopFilters").innerHTML = ["all", ...SHOPS].map(sh =>
+    `<button class="chip ${shopFilter === sh ? "active" : ""}" data-shop="${sh}">${sh === "all" ? "Visos" : sh}</button>`).join("");
+  const items = CATALOG.filter(i => i.shop && (shopFilter === "all" || i.shop === shopFilter));
+  $("shopGrid").innerHTML = items.map(i => {
+    const on = state.worn[i.category] === i.id, inCart = cart.includes(i.id);
+    return `<div class="prod ${on ? "worn" : ""}">
+      <img src="${i.img}" alt="${i.name}" loading="lazy">
+      ${i.sponsored ? `<em class="tag">Remiama</em>` : ""}
+      <b>${i.name}</b><small>${i.shop}</small><span class="price">${eur(i.cost)}</span>
+      <div class="acts">
+        <button class="btn ${on ? "btn-secondary" : "btn-primary"}" data-item="${i.id}">${on ? "Nusivilkti" : "Pasimatuoti"}</button>
+        <button class="icon-btn ${inCart ? "in" : ""}" data-cart="${i.id}" aria-pressed="${inCart}" aria-label="${inCart ? "Išimti iš krepšelio" : "Į krepšelį"}" title="${inCart ? "Išimti iš krepšelio" : "Į krepšelį"}">${inCart ? ICON.check : ICON.cart}</button>
+      </div>
+    </div>`;
+  }).join("");
+  // Krepšelis – sugrupuotas pagal parduotuvę, apmokama vienu kartu
+  $("cartBadge").hidden = !cart.length;
+  $("cartBadge").textContent = cart.length;
+  const inCart = cart.map(id => byId(id)).filter(Boolean);
+  if (orderDone) {
+    $("cart").innerHTML = `<h2>Užsakymas pateiktas</h2><p class="hint ok">Demonstracija: užsakymas niekur nesiunčiamas ir apmokėti nereikia. Tikroje programėlėje kiekviena parduotuvė gautų savo dalį.</p>
+      <button class="btn btn-secondary" id="orderAgain" style="margin-top:8px">Grįžti į parduotuves</button>`;
+    return;
+  }
+  if (!inCart.length) {
+    $("cart").innerHTML = `<div class="section-head" style="margin:0"><h2>Krepšelis</h2></div><p class="empty">Pasimatuok drabužį ir spausk krepšelio mygtuką – prekės iš kelių parduotuvių susirinks čia.</p>`;
+    return;
+  }
+  const shops = SHOPS.filter(sh => inCart.some(i => i.shop === sh));
+  const sum = inCart.reduce((a, i) => a + i.cost, 0), delivery = shops.length * DELIVERY;
+  $("cart").innerHTML = `<div class="section-head" style="margin:0"><h2>Krepšelis</h2><span class="label" style="font-weight:500">${inCart.length} ${inCart.length === 1 ? "prekė" : inCart.length < 10 ? "prekės" : "prekių"} iš ${shops.length} ${shops.length === 1 ? "parduotuvės" : "parduotuvių"}</span></div>` +
+    shops.map(sh => `<h3>${sh}<small>pristatymas ${eur(DELIVERY)}</small></h3>` +
+      inCart.filter(i => i.shop === sh).map(i => `<div class="cart-row"><img src="${i.img}" alt=""><span>${i.name}</span><b>${eur(i.cost)}</b>
+        <button class="icon-btn" data-cart="${i.id}" aria-label="Išimti iš krepšelio" title="Išimti">${ICON.del}</button></div>`).join("")).join("") +
+    `<dl class="totals"><dt>Prekės</dt><dd>${eur(sum)}</dd><dt>Pristatymas (${shops.length} ${shops.length === 1 ? "siunta" : "siuntos"})</dt><dd>${eur(delivery)}</dd>
+      <dt class="sum">Iš viso</dt><dd class="sum">${eur(sum + delivery)}</dd></dl>
+     <button class="btn btn-primary btn-big" id="order">Užsakyti vienu kartu · ${eur(sum + delivery)}</button>
+     <p class="hint">Demonstracija: parduotuvės, kainos ir užsakymas išgalvoti.</p>`;
+}
+
 function renderView() {
-  for (const v of ["look", "closet", "saved"]) $("view-" + v).hidden = state.view !== v;
+  for (const v of ["look", "closet", "shop", "saved"]) $("view-" + v).hidden = state.view !== v;
   document.querySelectorAll(".dock [data-view]").forEach(b => {
     const on = b.dataset.view === state.view;
     b.classList.toggle("active", on);
@@ -1760,7 +1859,7 @@ function renderMode() {
 
 function render() {
   renderStylist();
-  renderTabs(); renderFilters(); renderCatalog(); renderGenders(); renderMeasures(); renderAvatar(); renderWornList();
+  renderTabs(); renderFilters(); renderCatalog(); renderShop(); renderGenders(); renderMeasures(); renderAvatar(); renderWornList();
   renderSwatches(); renderView(); renderMode(); update3d();
   persist();   // atsimenam matmenis ir dabartinį derinį
 }
@@ -1860,6 +1959,15 @@ document.addEventListener("click", e => {
     render(); return;
   }
   // --- Mano spinta ---
+  // --- Parduotuvės ---
+  if (d.shop) { shopFilter = d.shop; renderShop(); return; }
+  if (d.cart) {
+    const id = Number(d.cart);
+    cart = cart.includes(id) ? cart.filter(x => x !== id) : [...cart, id];
+    orderDone = false; persistCart(); renderShop(); return;
+  }
+  if (el.id === "order") { orderDone = true; cart = []; persistCart(); renderShop(); return; }
+  if (el.id === "orderAgain") { orderDone = false; renderShop(); window.scrollTo({ top: 0 }); return; }
   if (el.id === "toastUndo") {
     const undo = undoAction; hideToast();
     if (undo) { undo(); stylist = null; render(); renderSaved(); }

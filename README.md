@@ -8,7 +8,8 @@ Atsisiųskite visą repozitoriją (Code → Download ZIP), išskleiskite ir du k
 ## Gyva nuoroda
 https://linertasmatas-star.github.io/NovaFit/
 
-## Kas jau veikia (demo v20)
+## Kas jau veikia (demo v21)
+- Skirtukas „Parduotuvės“ (demonstracinė imitacija): 5 prekės iš 3 išgalvotų parduotuvių su nuotraukomis (`assets/shop/`), filtras pagal parduotuvę, „Pasimatuoti“ uždeda prekę ant avataro (džemperis, megztinis, džinsai, kostiuminės kelnės – 3D modeliai), bendras krepšelis su pristatymu kiekvienai parduotuvei, „Užsakyti vienu kartu“ – niekur nesiunčiama. Prekės – `CATALOG` su `shop:` (id 201–205)
 - Ištrynus drabužį ar derinį 5 sekundes rodoma „Ištrinta · Atšaukti“ – galima sugrąžinti (drabužis grįžta ir ant avataro, ir į išsaugotus derinius)
 - „Mano spinta“: didesnės drabužių nuotraukos (telefone 3 stulpeliai), kortelė „Įkelti drabužį“ su +; be pavadinimo drabužis vadinamas tipu (pvz. „Džinsai“), po juo – kategorija
 - Naujas drabužio įkėlimas: „Įkelti drabužį“ atidaro lapą „Fotografuoti“ (telefone – iškart kamera) / „Iš galerijos“; formoje – didelė nuotrauka su „Kita nuotrauka“, tipas mygtukais pagal grupes (Viršus, Apačia…), spalva iš nuotraukos (paspaudus apskritimą – pasirinkti pačiam), raštas, pavadinimas. Meniu – nauja spintos ikona
